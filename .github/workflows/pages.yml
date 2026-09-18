@@ -46,11 +46,11 @@ jobs:
           mkdir -p _site
           cp index.html manifest.webmanifest sw.js icon.svg icon-maskable.svg .nojekyll _site/
 
-      # enablement: true で Pages サイト自体もワークフローから作る。
-      # 設定画面で Source を切り替えなくても、この push で公開が始まる。
+      # enablement: true は使えない。Pages サイトの新規作成はリポジトリの admin
+      # 権限を要求する操作で、ワークフローの GITHUB_TOKEN では
+      # "Resource not accessible by integration" になる。
+      # Settings → Pages → Source を「GitHub Actions」にする作業だけは人の手で一度行う。
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
