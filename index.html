@@ -243,7 +243,8 @@ table.lv td.no{color:var(--muted); font-weight:400;}
 svg.chart{display:block; width:100%; height:auto; max-width:100%; touch-action:pan-y;}
 .tipbox{position:absolute; pointer-events:none; opacity:0; transition:opacity .12s;
   background:var(--surface); border:1px solid var(--rule); border-radius:4px;
-  box-shadow:0 6px 20px rgba(0,0,0,.16); padding:9px 11px; z-index:4; max-width:300px;}
+  box-shadow:0 6px 20px rgba(0,0,0,.16); padding:9px 11px; z-index:4;
+  max-width:min(460px,96%);}
 .tipbox.on{opacity:1;}
 .tipbox h4{margin:0 0 7px; font-family:var(--mono); font-size:11.5px; font-weight:500; color:var(--ink);}
 .tipbox ul{margin:0; padding:0; list-style:none; display:grid; gap:1px 16px;}
@@ -251,6 +252,7 @@ svg.chart{display:block; width:100%; height:auto; max-width:100%; touch-action:p
 .tipbox li i{width:8px; height:8px; border-radius:50%; flex:none;}
 .tipbox li b{margin-left:auto; font-family:var(--mono); font-weight:500; color:var(--ink);
   font-variant-numeric:tabular-nums; padding-left:10px;}
+.tipbox .more{margin:7px 0 0; font-size:11px; color:var(--muted);}
 
 .method{font-size:13px; color:var(--ink-2); line-height:1.75;}
 .method p{margin:0 0 10px;} .method p:last-child{margin:0;}
@@ -1055,15 +1057,29 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
       gDots.appendChild(el("circle",{cx:px,cy:sy(o.p),r:3.5,fill:col(o.d.v),
         stroke:surface,"stroke-width":1.5}));
     });
-    var two=vis.length>7;
+    var pr=plot.getBoundingClientRect();
+    // 下端に置ける高さから何件まで載るかを決め、入りきらないぶんは畳む。
+    // 残すのは第一志望とその前後で、順位が近い学科どうしを見比べられるようにする。
+    var cols = pr.width<430 ? 1 : pr.width<760 ? 2 : 3;
+    var maxRows = Math.max(1, Math.floor((pr.height*0.42 - 50)/20));
+    var capN = cols*maxRows, shown=vis, hidden=0;
+    if(vis.length>capN){
+      var at=0;
+      for(var j=0;j<vis.length;j++) if(vis[j].d.mine){ at=j; break; }
+      var from=Math.max(0, Math.min(vis.length-capN, at-Math.floor(capN/2)));
+      shown=vis.slice(from, from+capN); hidden=vis.length-shown.length;
+    }
     tip.innerHTML="<h4>得点率 "+rate.toFixed(1)+"%</h4><ul style='grid-template-columns:repeat("+
-      (two?2:1)+",auto)'>"+vis.map(function(o){
+      cols+",auto)'>"+shown.map(function(o){
         return "<li><i style='background:"+col(o.d.v)+"'></i>"+o.d.dep+
-               "<b>"+o.p.toFixed(1)+"%</b></li>"; }).join("")+"</ul>";
+               "<b>"+o.p.toFixed(1)+"%</b></li>"; }).join("")+"</ul>"+
+      (hidden? "<p class='more'>ほか "+hidden+" 学科（上の学部チップで絞り込める）</p>" : "");
     tip.classList.add("on");
-    var pr=plot.getBoundingClientRect(), lx=px/W*pr.width;
-    tip.style.left=Math.max(4,Math.min(pr.width-tip.offsetWidth-4,lx+16))+"px";
-    tip.style.top="10px";
+    // 曲線はすべて右上がりなので、右下は必ず空く。カーソルを追わずそこに固定して
+    // 曲線と現在地マーカーを隠さないようにする。
+    tip.style.top="auto";
+    tip.style.bottom=(pr.height*B/H + 8)+"px";
+    tip.style.left=Math.max(4, pr.width - tip.offsetWidth - 6)+"px";
   }
   function leave(){ cross.setAttribute("opacity",0); tip.classList.remove("on"); gDots.textContent=""; }
   hit.addEventListener("mousemove",move);
