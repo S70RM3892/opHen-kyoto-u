@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - claude/artifact-improvement-5fu7z1
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -12,18 +13,20 @@ permissions:
   pages: write
   id-token: write
 
+# ブランチに push すると push と pull_request の両方が発火する。ここを単に
+# group: pages にすると片方がもう片方を打ち消して cancelled になるので、
+# 打ち切ってよい検査は ref とイベントごとに分け、Pages へのデプロイだけを
+# deploy ジョブ側で直列化する。
 concurrency:
-  group: pages
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  # ページが壊れていないかを見る本来のゲート。PR でもここが回る。
+  check:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Check the page parses and the fragment round-trips
         run: |
@@ -41,18 +44,50 @@ jobs:
             console.log("ok");
           '
 
+  # 公開。Pages がまだ有効でないときは失敗させず、警告を出して飛ばす。
+  # Pages サイトの新規作成はリポジトリの admin 権限を要求する操作で、
+  # ワークフローの GITHUB_TOKEN では "Resource not accessible by integration" になる。
+  # Settings → Pages → Source を「GitHub Actions」にする作業だけは人の手で一度行う。
+  # 設定が入れば、次の push から下のステップがそのまま動きだす。
+  deploy:
+    needs: check
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Is Pages enabled on this repository?
+        id: pages_status
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh api "repos/${GITHUB_REPOSITORY}/pages" >/dev/null 2>&1; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Pages が未設定::Settings → Pages → Source を「GitHub Actions」に設定すると、次の push から公開が始まります。この設定はワークフローからは行えません（admin 権限が必要）。"
+          fi
+
       - name: Stage the site
+        if: steps.pages_status.outputs.enabled == 'true'
         run: |
           mkdir -p _site
           cp index.html manifest.webmanifest sw.js icon.svg icon-maskable.svg .nojekyll _site/
 
-      # enablement: true は使えない。Pages サイトの新規作成はリポジトリの admin
-      # 権限を要求する操作で、ワークフローの GITHUB_TOKEN では
-      # "Resource not accessible by integration" になる。
-      # Settings → Pages → Source を「GitHub Actions」にする作業だけは人の手で一度行う。
       - uses: actions/configure-pages@v5
+        if: steps.pages_status.outputs.enabled == 'true'
+
       - uses: actions/upload-pages-artifact@v3
+        if: steps.pages_status.outputs.enabled == 'true'
         with:
           path: _site
+
       - id: deploy
         uses: actions/deploy-pages@v4
+        if: steps.pages_status.outputs.enabled == 'true'

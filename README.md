@@ -27,9 +27,18 @@ python3 -m http.server 8765   # → http://127.0.0.1:8765/
 
 ## 公開
 
-`.github/workflows/pages.yml` が push のたびに検査してデプロイする。
+`.github/workflows/pages.yml` は2つのジョブに分かれている。
+
+- `check` — ページが壊れていないかを見る本来のゲート。push でも PR でも回る。
+- `deploy` — GitHub Pages への公開。push のときだけ回る。
+
 リポジトリ側で一度だけ **Settings → Pages → Source を「GitHub Actions」** に
-設定する必要がある（APIからは設定できない）。
+設定する必要がある。Pages サイトの新規作成は admin 権限を要求する操作で、
+ワークフローの `GITHUB_TOKEN` では `Resource not accessible by integration`
+になるため自動化できない（`configure-pages` の `enablement: true` も同様）。
+
+設定が済むまでの間、`deploy` はエラーではなく警告を出して自分を飛ばすので、
+CI は緑のまま。設定を入れれば次の push からそのまま公開が始まる。
 
 ## Artifact 版との関係
 
