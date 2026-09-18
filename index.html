@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>京大理系 合格可能性シミュレータ</title>
+<meta name="description" content="2027年度 第1回 京大入試オープンの素点から、京大理系19募集単位それぞれの配点で得点率・判定・第1段階選抜の位置を出す。">
+<meta name="theme-color" content="#f2f2ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="京大シミュレータ">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+/* Artifact の公開スケルトンと同じ土台。フラグメントをそのまま使えるようにする。 */
+:root{color-scheme:light;box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;
+  background:#faf9f5;color:#141413}
+img{max-width:100%}
+[hidden]:not([hidden=until-found i]){display:none!important}
+</style>
+</head>
+<body>
+<!-- ARTIFACT:START — この区間が Artifact に公開されるフラグメント。build.sh が切り出す。 -->
+<title>京大理系 合格可能性シミュレータ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --page:#f2f2ef; --surface:#fcfcfb; --raise:#f7f7f4;
+  --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --track:#e7e6df;
+  --rule:rgba(11,11,11,0.10); --chip:#eceae3; --field:#ffffff;
+  --f1:#2a78d6; --f2:#eb6834; --f3:#1baf7a; --f4:#eda100;
+  --f5:#e87ba4; --f6:#008300; --f7:#4a3aa7; --f8:#e34948;
+  --gA:#0ca30c; --gB:#2a78d6; --gC:#eda100; --gD:#ec835a; --gE:#d03b3b;
+  --focus:#2a78d6;
+  --sans:"Zen Kaku Gothic New", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --page:#0d0d0d; --surface:#1a1a19; --raise:#222220;
+    --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --track:#2c2c2a;
+    --rule:rgba(255,255,255,0.10); --chip:#26261f; --field:#121211;
+    --f1:#3987e5; --f2:#d95926; --f3:#199e70; --f4:#c98500;
+    --f5:#d55181; --f6:#008300; --f7:#9085e9; --f8:#e66767;
+    --gA:#0ca30c; --gB:#3987e5; --gC:#fab219; --gD:#ec835a; --gE:#d03b3b;
+    --focus:#3987e5;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --page:#0d0d0d; --surface:#1a1a19; --raise:#222220;
+  --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --track:#2c2c2a;
+  --rule:rgba(255,255,255,0.10); --chip:#26261f; --field:#121211;
+  --f1:#3987e5; --f2:#d95926; --f3:#199e70; --f4:#c98500;
+  --f5:#d55181; --f6:#008300; --f7:#9085e9; --f8:#e66767;
+  --gA:#0ca30c; --gB:#3987e5; --gC:#fab219; --gD:#ec835a; --gE:#d03b3b;
+  --focus:#3987e5;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--page); color:var(--ink);
+  font-family:var(--sans); font-size:15px; line-height:1.7; -webkit-font-smoothing:antialiased;}
+.wrap{max-width:1000px; margin:0 auto; padding-inline:16px; padding-block:36px 64px;
+  display:flex; flex-direction:column; gap:22px;}
+.eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--muted); margin:0 0 6px;}
+h1{font-size:clamp(25px,4.6vw,34px); font-weight:700; line-height:1.25;
+  letter-spacing:-.015em; margin:0; text-wrap:balance;}
+.lede{margin:9px 0 0; color:var(--ink-2); max-width:62ch; font-size:14.5px;}
+.card{background:var(--surface); border:1px solid var(--rule); border-radius:4px; padding:20px;}
+h2{font-size:16px; font-weight:700; margin:0 0 3px; letter-spacing:-.005em;}
+.sub{font-size:13px; color:var(--muted); margin:0 0 16px; max-width:72ch;}
+
+/* ---- input ---- */
+.ingroup + .ingroup{margin-top:18px;}
+.ghead{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+  margin-bottom:11px; padding-bottom:7px; border-bottom:1px solid var(--rule);}
+.ghead h3{margin:0; font-size:13.5px; font-weight:700;}
+.ghead .note{font-size:11.5px; color:var(--muted);}
+.ghead .tot{margin-left:auto; font-family:var(--mono); font-size:12.5px; color:var(--ink);
+  font-variant-numeric:tabular-nums;}
+.fields{display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:9px;}
+.field{display:flex; flex-direction:column; gap:3px;}
+.field label{font-size:11.5px; color:var(--ink-2); display:flex;
+  justify-content:space-between; gap:4px; align-items:baseline;}
+.field label span{font-family:var(--mono); font-size:10.5px; color:var(--muted);}
+.field input{width:100%; padding:8px 10px; border:1px solid var(--rule); border-radius:4px;
+  background:var(--field); color:var(--ink); font-family:var(--mono); font-size:15px;
+  font-variant-numeric:tabular-nums; text-align:right;}
+.field input:focus-visible{outline:2px solid var(--focus); outline-offset:1px; border-color:transparent;}
+.field input.bad{border-color:var(--gE); color:var(--gE);}
+.actions{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:16px;}
+button.btn{padding:7px 14px; border:1px solid var(--rule); border-radius:999px;
+  background:transparent; font-family:var(--sans); font-size:13px; color:var(--ink);
+  cursor:pointer; line-height:1.5;}
+button.btn:hover{background:var(--chip);}
+button.btn:focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
+.hint{font-size:11.5px; color:var(--muted);}
+select.sel{padding:6px 10px; border:1px solid var(--rule); border-radius:4px;
+  background:var(--field); color:var(--ink); font-family:var(--sans); font-size:13px;}
+select.sel:focus-visible{outline:2px solid var(--focus); outline-offset:1px;}
+.subopt{display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-top:12px;
+  font-size:12px; color:var(--ink-2);}
+
+/* ---- focus panel ---- */
+.focus{border-top:3px solid var(--fc,var(--f1));}
+.fhead{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:4px;}
+.fhead h2{margin:0;}
+.fhead select{margin-left:auto;}
+.bignums{display:grid; grid-template-columns:repeat(auto-fit,minmax(128px,1fr));
+  gap:2px; margin:16px 0 0; border:1px solid var(--rule); border-radius:4px; overflow:hidden;
+  background:var(--rule);}
+.bn{background:var(--surface); padding:12px 14px; display:flex; flex-direction:column; gap:2px;}
+.bn dt{font-size:11px; color:var(--muted); letter-spacing:.04em;}
+.bn dd{margin:0; font-family:var(--mono); font-size:23px; font-weight:500; line-height:1.25;
+  font-variant-numeric:tabular-nums;}
+.bn dd small{font-size:12px; color:var(--muted); font-weight:400;}
+.bn .gbig{display:inline-block; min-width:30px; padding:0 8px; border-radius:3px;
+  color:#fff; text-align:center;}
+.steps{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
+.step{flex:1 1 150px; border:1px solid var(--rule); border-radius:4px; padding:9px 12px;
+  display:flex; align-items:baseline; gap:8px;}
+.step i{width:8px;height:8px;border-radius:2px;flex:none;transform:translateY(-1px);}
+.step b{font-size:12.5px; font-weight:500;}
+.step .v{margin-left:auto; font-family:var(--mono); font-size:14px;
+  font-variant-numeric:tabular-nums;}
+.step.hit{background:color-mix(in srgb, var(--gA) 10%, transparent);}
+.gate{margin-top:16px; padding:12px 14px; border:1px solid var(--rule); border-radius:4px;
+  background:var(--raise); font-size:13px; color:var(--ink-2);}
+.gate h4{margin:0 0 6px; font-size:12.5px; font-weight:700; color:var(--ink);}
+.gate .g1{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+  font-family:var(--mono); font-size:14px; color:var(--ink); font-variant-numeric:tabular-nums;}
+.gate p{margin:6px 0 0; font-size:12px;}
+.warnpill{display:inline-block; padding:1px 8px; border-radius:999px; font-size:11.5px;
+  font-family:var(--sans); color:#fff; background:var(--gE);}
+.okpill{display:inline-block; padding:1px 8px; border-radius:999px; font-size:11.5px;
+  font-family:var(--sans); color:#fff; background:var(--gA);}
+
+/* ---- leverage table ---- */
+.lvwrap{overflow-x:auto;}
+table.lv{width:100%; border-collapse:collapse; min-width:600px;}
+table.lv th{font-size:11px; color:var(--muted); font-weight:400; text-align:right;
+  padding:0 8px 7px; border-bottom:1px solid var(--axis); white-space:nowrap;
+  letter-spacing:.04em;}
+table.lv th:first-child{text-align:left;}
+table.lv td{padding:7px 8px; border-bottom:1px solid var(--rule); font-size:13px;
+  text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums;
+  white-space:nowrap; color:var(--ink-2);}
+table.lv td:first-child{text-align:left; font-family:var(--sans); font-size:13.5px; color:var(--ink);}
+table.lv tr.dim td{opacity:.45;}
+table.lv tr:hover td{background:var(--raise);}
+table.lv td.need{color:var(--ink); font-weight:500;}
+table.lv td.no{color:var(--muted); font-weight:400;}
+.gaugecell{width:34%; min-width:120px;}
+.gauge{position:relative; height:14px; background:var(--track); border-radius:2px;}
+.gauge span{position:absolute; left:0; top:0; bottom:0; border-radius:2px;}
+.tagrow{display:flex; gap:6px; align-items:center; margin:0 0 12px; flex-wrap:wrap;
+  font-size:12.5px; color:var(--ink-2);}
+.tgt{padding:4px 11px; border:1px solid var(--rule); border-radius:999px; background:transparent;
+  font-family:var(--sans); font-size:12.5px; color:var(--ink); cursor:pointer; line-height:1.5;}
+.tgt[aria-pressed="true"]{background:var(--ink); color:var(--page); border-color:var(--ink);}
+.tgt:focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
+.lvnote{font-size:12px; color:var(--muted); margin:12px 0 0;}
+
+/* ---- ranked list ---- */
+.scale{display:grid; grid-template-columns:var(--cols); gap:0 12px; align-items:end;
+  padding:0 0 7px; border-bottom:1px solid var(--axis); margin-bottom:2px;}
+.scale > *{font-family:var(--mono); font-size:10.5px; color:var(--muted);
+  letter-spacing:.05em; text-transform:uppercase;}
+.scale .num{text-align:right;}
+.scalebar{position:relative; height:13px;}
+.scalebar span{position:absolute; bottom:0; transform:translateX(-50%);
+  font-family:var(--mono); font-size:10px; color:var(--muted);}
+.rows{display:flex; flex-direction:column;}
+.row{display:grid; grid-template-columns:var(--cols); gap:0 12px; align-items:center;
+  padding:9px 0; border-bottom:1px solid var(--rule);}
+.row:last-child{border-bottom:none;}
+.row:hover{background:var(--raise);}
+.row.mine{background:color-mix(in srgb, var(--f1) 9%, transparent);}
+.row.mine:hover{background:color-mix(in srgb, var(--f1) 15%, transparent);}
+.nm{display:flex; align-items:baseline; gap:8px; min-width:0;}
+.nm i{width:10px; height:10px; border-radius:2px; flex:none; transform:translateY(1px);}
+.nm b{font-weight:500; font-size:14px; white-space:nowrap;}
+.nm em{font-style:normal; font-size:11.5px; color:var(--muted); white-space:nowrap;}
+.nm .pin{font-size:10.5px; font-family:var(--mono); color:var(--f1); white-space:nowrap;}
+.num{font-family:var(--mono); font-size:13px; text-align:right; color:var(--ink-2);
+  font-variant-numeric:tabular-nums; white-space:nowrap;}
+.num.strong{color:var(--ink); font-weight:500;}
+.bar{position:relative; height:19px; background:var(--track); border-radius:2px;}
+.bar .fill{position:absolute; left:0; top:0; bottom:0; border-radius:2px;}
+.bar .tk{position:absolute; top:-2px; bottom:-2px; width:2px; border-radius:1px;}
+.bar .val{position:absolute; top:0; bottom:0; display:flex; align-items:center; z-index:2;
+  font-family:var(--mono); font-size:11.5px; color:var(--ink); padding-inline:6px;
+  font-variant-numeric:tabular-nums; white-space:nowrap;}
+.num.est{color:var(--muted); font-size:12px;}
+.gchip.muted-chip{background:var(--track); color:var(--muted);}
+.gchip{display:inline-block; min-width:20px; padding:1px 5px; border-radius:3px;
+  font-family:var(--mono); font-size:11.5px; font-weight:500; text-align:center;
+  color:#fff; justify-self:center;}
+@media (max-width:760px){
+  .scale{display:none;}
+  .row{grid-template-columns:1fr auto auto; gap:3px 10px; padding:11px 0;}
+  .row .nm{grid-column:1; }
+  .row .c-score{grid-column:2; }
+  .row .c-rate{grid-column:3; }
+  .row .c-rate2{display:none;}
+  .row .bar{grid-column:1 / -1; margin-top:4px;}
+  .row .gchip{grid-column:1; justify-self:start;}
+  .row .c-prob{grid-column:2;}
+  .row .c-gap{grid-column:3;}
+}
+
+/* ---- chart ---- */
+.filters{display:flex; flex-wrap:wrap; gap:6px; margin:0 0 14px;}
+.fchip{display:inline-flex; align-items:center; gap:6px; padding:4px 10px 4px 8px;
+  border:1px solid var(--rule); border-radius:999px; background:transparent;
+  font-family:var(--sans); font-size:12.5px; color:var(--ink); cursor:pointer; line-height:1.5;}
+.fchip .sw{width:9px; height:9px; border-radius:50%; flex:none;}
+.fchip .n{font-family:var(--mono); font-size:10.5px; color:var(--muted);}
+.fchip[aria-pressed="false"]{opacity:.4;}
+.fchip[aria-pressed="false"] .sw{background:var(--muted)!important;}
+.fchip:focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
+.plot{position:relative;}
+svg.chart{display:block; width:100%; height:auto; max-width:100%; touch-action:pan-y;}
+.tipbox{position:absolute; pointer-events:none; opacity:0; transition:opacity .12s;
+  background:var(--surface); border:1px solid var(--rule); border-radius:4px;
+  box-shadow:0 6px 20px rgba(0,0,0,.16); padding:9px 11px; z-index:4; max-width:300px;}
+.tipbox.on{opacity:1;}
+.tipbox h4{margin:0 0 7px; font-family:var(--mono); font-size:11.5px; font-weight:500; color:var(--ink);}
+.tipbox ul{margin:0; padding:0; list-style:none; display:grid; gap:1px 16px;}
+.tipbox li{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-2); white-space:nowrap;}
+.tipbox li i{width:8px; height:8px; border-radius:50%; flex:none;}
+.tipbox li b{margin-left:auto; font-family:var(--mono); font-weight:500; color:var(--ink);
+  font-variant-numeric:tabular-nums; padding-left:10px;}
+
+.method{font-size:13px; color:var(--ink-2); line-height:1.75;}
+.method p{margin:0 0 10px;} .method p:last-child{margin:0;}
+.method code{font-family:var(--mono); font-size:12px; background:var(--chip);
+  padding:1px 5px; border-radius:2px; color:var(--ink);}
+.method a{color:var(--focus);} .method strong{color:var(--ink);}
+.method table{width:100%; border-collapse:collapse; margin:4px 0 14px; min-width:520px;}
+.method th,.method td{padding:5px 8px; border-bottom:1px solid var(--rule); text-align:right;
+  font-family:var(--mono); font-size:12px; font-variant-numeric:tabular-nums; white-space:nowrap;}
+.method th{color:var(--muted); font-weight:400; border-bottom:1px solid var(--axis);}
+.method th:first-child,.method td:first-child{text-align:left; font-family:var(--sans);}
+.tblwrap{overflow-x:auto;}
+footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); padding-top:16px;}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">2027年度 第1回 京大入試オープン ／ 河合塾</p>
+    <h1>京大理系 合格可能性シミュレータ</h1>
+    <p class="lede">素点を入れると、理系19募集単位それぞれの配点に当てはめて得点率と判定を出す。京大は学部ごとに科目配点が違うので、同じ答案でも学科によって結果は大きく変わる。配点は令和9年度（2027年度）入学者選抜要項で全学部検証済み。判定は公表された基準点との比較、パーセンテージは推定値。</p>
+  </header>
+
+  <section class="card">
+    <h2>素点を入力</h2>
+    <p class="sub">入力するとその場で全学科が再計算される。空欄は0として扱う。</p>
+    <div class="ingroup">
+      <div class="ghead"><h3>共通テスト</h3>
+        <span class="note">河合の「換算得点」を入れると公式判定を再現／本番素点でも可</span>
+        <span class="tot" id="ktTot"></span></div>
+      <div class="fields" id="ktFields"></div>
+      <div class="subopt">
+        <label for="sci1st">共通テスト理科の第1解答科目</label>
+        <select class="sel" id="sci1st">
+          <option value="1">理科①</option>
+          <option value="2">理科②</option>
+        </select>
+        <span class="hint">経済理系は理科1科目のみ採点。第1解答科目の成績が使われる。</span>
+      </div>
+    </div>
+    <div class="ingroup">
+      <div class="ghead"><h3>二次</h3>
+        <span class="note">記述模試の素点（河合配点）</span>
+        <span class="tot" id="njTot"></span></div>
+      <div class="fields" id="njFields"></div>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn" id="clear">入力をクリア</button>
+      <span class="hint" id="saveNote"></span>
+    </div>
+  </section>
+
+  <section class="card focus" id="focusCard">
+    <div class="fhead">
+      <h2>第一志望</h2>
+      <select class="sel" id="focusSel" aria-label="第一志望の募集単位"></select>
+    </div>
+    <p class="sub" id="focusSub"></p>
+    <dl class="bignums" id="focusNums"></dl>
+    <div class="steps" id="focusSteps"></div>
+    <div class="gate" id="focusGate"></div>
+  </section>
+
+  <section class="card">
+    <h2>どの科目を伸ばすのが一番効くか</h2>
+    <p class="sub" id="lvSub"></p>
+    <div class="tagrow">
+      <span>目標</span>
+      <button type="button" class="tgt" data-t="C" aria-pressed="false">C基準</button>
+      <button type="button" class="tgt" data-t="B" aria-pressed="false">B基準</button>
+      <button type="button" class="tgt" data-t="A" aria-pressed="true">A基準</button>
+    </div>
+    <div class="lvwrap">
+      <table class="lv">
+        <thead><tr>
+          <th>科目</th>
+          <th>現在／満点</th>
+          <th>素点1点の重み</th>
+          <th class="gaugecell">残りの伸びしろ（総合点換算）</th>
+          <th id="thNeed">目標まで この科目だけで</th>
+        </tr></thead>
+        <tbody id="lvBody"></tbody>
+      </table>
+    </div>
+    <p class="lvnote" id="lvNote"></p>
+  </section>
+
+  <section class="card">
+    <h2>学科別の現在地</h2>
+    <p class="sub">帯は<strong>総合得点率</strong>の軸。縦線はその学科の公表基準点（<span style="color:var(--gC)">■</span>C基準・<span style="color:var(--gB)">■</span>B基準・<span style="color:var(--gA)">■</span>A基準）で、学科ごとに位置が違う。バーがどの線を越えたかが判定。</p>
+    <div class="scale" id="scale">
+      <div>学部・学科</div>
+      <div class="num">得点／配点</div>
+      <div class="num">得点率</div>
+      <div class="scalebar" id="scalebar"></div>
+      <div style="text-align:center">判定</div>
+      <div class="num">可能性<br>(推定)</div>
+      <div class="num">Aまで</div>
+    </div>
+    <div class="rows" id="rows"></div>
+  </section>
+
+  <section class="card">
+    <h2>得点率を上げたらどう動くか</h2>
+    <p class="sub">横軸＝総合得点率、縦軸＝<strong>合格可能性（推定）</strong>。丸印が現在地。上の行にカーソルを合わせると該当曲線が強調される。パーセンテージは模試の資料に記載がなく、下の「計算の方法」に書いた仮定で算出した推定値。</p>
+    <div class="filters" id="filters"></div>
+    <div class="plot">
+      <svg class="chart" id="chart" viewBox="0 0 900 470" role="img"
+        aria-label="京大理系19募集単位の合格可能性曲線。横軸は総合得点率、縦軸は合格可能性。"></svg>
+      <div class="tipbox" id="tip" aria-hidden="true"></div>
+    </div>
+  </section>
+
+  <section class="card method">
+    <h2>計算の方法</h2>
+    <p class="sub" style="margin-bottom:14px">数値の出どころと変換手順。配点は令和9年度（2027年度）京都大学入学者選抜要項の学部別配点表と1対1で照合した。</p>
+
+    <p><strong>なぜ得点率で比べるのか。</strong>京大は学部ごとに総合配点が違う（総合人間理系825／薬920／教育理系915／経済理系950／工1025／医人間健康1025／農1050／理1225／医医学科1275）。生の得点では医の871点と工情報の626点が同じ土俵に乗らないため、全単位を得点率に正規化している。</p>
+
+    <p><strong>素点から各学科の得点へ。</strong>科目ごとに「素点÷満点×その学部の配点」を計算して合算する。下が採用した配点表で、令和9年度入学者選抜要項の各学部ページに載っている数字そのもの。合計は9学部すべて要項の「配点合計」と一致する。</p>
+    <div class="tblwrap"><table id="haiten"></table></div>
+
+    <p><strong>共通テスト英語のリーディングとリスニング。</strong>京大は『英語』200点満点（R100・L100）を、<strong>リーディング150点・リスニング50点に換算して</strong>利用する——ただし<strong>工学部だけは200点満点をそのまま（R100・L100のまま）使う</strong>。つまり工学部志望者にとってのみ、共通テストのリスニング1点はリーディング1点と同じ重みを持つ。他学部ではリーディング1点がリスニング1点の3倍効く。このシミュレータは学部ごとにこの換算を正確に実装している。</p>
+
+    <p><strong>理科の科目数。</strong>共通テスト理科は、経済理系だけが1科目（2科目受験しても<strong>第1解答科目</strong>の成績のみ採用）で、他の理系学部は2科目。総合人間理系は共通テストの国数理外が個別学力検査の得点対象外（第1段階選抜にのみ使用）。二次の理科は、工学部が物理・化学の2科目固定、教育理系が1科目、経済理系は理科なし、他は2科目。1科目しか使わない二次では自分で選べるので得意な方を採用している。</p>
+
+    <p><strong>第1段階選抜（足切り）。</strong>これは二次の配点とは<strong>別の配点表</strong>で行われる。共通テストを1000点前後の素点に近い配点で合計し、志願者が募集人員の一定倍率を超えたときに上位から切る。学部別配点で圧縮された共通テストの点数とは全く違う数字になるので、独立に表示している。公表されている具体的な点数ラインは<strong>医学科の「1000点中700点以上」だけ</strong>で、他学部は倍率のみ（実際に足切りが行われるかは志願状況次第）。ここでも英語は各学部の換算規則に従う。</p>
+
+    <p><strong>判定（資料に書いてある部分）。</strong>河合塾「合格学力評価基準」に載っている A・B・C の基準点をそのまま使い、算出した得点と直接比較して判定を出している。二次・総合の判定は個人成績表の凡例どおり <strong>A・B・C・D の4段階</strong>で、D は「C基準未満」を指す。E は存在しない（5段階なのは共通テストの判定のみ）。ここに推定は入っていない。</p>
+
+    <p><strong>合格可能性のパーセンテージ（推定である部分）。</strong>個人成績表と合格学力評価基準の凡例には「合格圏到達」「要努力圏」などの文言しかなく、<strong>パーセンテージはどこにも書かれていない</strong>。ここで表示している%は、河合塾が全統模試について公表している対応（A＝80%・B＝65%・C＝50%・D＝35%）をこの模試の基準点に当てはめた推定値であり、京大入試オープンについて河合塾が明示したものではない。曲線は A・B・C の3点をロジット変換して内挿し、その外側は端点の傾きで外挿している。<strong>とくにC基準点より下は全て外挿で、裏づけとなる公表値がない。</strong></p>
+
+    <p>参考として、個人成績表の得点帯の5番目の境目は、実測できる工学部情報・電気電子の2例ともちょうど <code>D = 2C − B</code>（B–C間と同じ間隔）に一致する（情報502、電気電子459）。この領域を河合塾も等間隔で区切っていることは確認できるが、そこが35%である証拠にはならない。<strong>%より、判定（A/B/C/D）と基準点までの点差のほうを信用したほうがいい。</strong></p>
+
+    <p><strong>「素点1点の重み」。</strong>ある科目の素点を1点上げたとき、その学部の総合点が何点増えるかを配点から直接計算した値。たとえば工学部なら、共通テスト数学の1点は総合0.125点にしかならないが、共通テスト情報Ⅰの1点は0.5点、二次英語の1点は1.33点になる。「残りの伸びしろ」はその科目で満点まで取り切った場合に総合点がいくら増えるかで、勉強の優先順位はこの列で見る。ただし満点までの距離＝取りやすさではないので、最後は自分の伸びしろの実感と掛け合わせて判断すること。</p>
+
+    <p>出典：<a href="https://www.kyoto-u.ac.jp/sites/default/files/inline-files/senbatsuyokoR9_all-22d87b752c22c5b9d7bcb8ef94505625.pdf">令和9年度 京都大学 入学者選抜要項（配点表・第1段階選抜の配点等）</a>／<a href="https://www.kyoto-u.ac.jp/ja/admissions/undergrad">京都大学 一般選抜</a>／<a href="https://www.keinet.ne.jp/exam/basic/term/ka_14.html">合格可能性評価｜河合塾 Kei-Net</a>／河合塾「2027年度第1回京大入試オープン 合格学力評価基準」「個人成績表」</p>
+  </section>
+
+  <footer>模試1回分の判定であり、入試本番の合否確率ではない。判定は母集団と実施時期に依存する。第1段階選抜の実施有無と実質的なラインは毎年の志願状況で変わる。</footer>
+</div>
+
+<script>
+(function(){
+  var COLS = "minmax(132px,1.4fr) 100px 58px minmax(170px,2.3fr) 42px 56px 58px";
+  document.getElementById("scale").style.setProperty("--cols", COLS);
+
+  // kt: [国語, 地歴公民, 数学, 理科, 外国語, 情報]  nj: [国語, 数学, 理科, 外国語]
+  // eng: 共通テスト英語200点満点の内訳 [リーディング, リスニング]（京大の換算規則）
+  // st : 第1段階選抜の配点 [国語, 地歴公民, 数学, 理科, 外国語, 情報]（素点に近い配点）
+  var FAC = {
+    "総合人間":{kt:[0,100,0,0,0,25],    ktR:2, nj:[150,200,200,150], njR:2, v:"--f6",
+                eng:[150,50], st:[200,100,200,200,200,50],  stR:2, ratio:"約3.5倍"},
+    "教育":    {kt:[50,50,50,50,50,15], ktR:2, nj:[150,200,100,200], njR:1, v:"--f7",
+                eng:[150,50], st:[200,100,200,200,200,30],  stR:2, ratio:"約3.5倍"},
+    "経済":    {kt:[50,50,50,50,50,50], ktR:1, nj:[150,300,0,200],   njR:0, v:"--f8",
+                eng:[150,50], st:[200,100,200,100,200,100], stR:1, ratio:"約3.5倍"},
+    "理":      {kt:[50,25,50,50,50,25], ktR:2, nj:[150,300,300,225], njR:2, v:"--f3",
+                eng:[150,50], st:[200,100,200,200,200,100], stR:2, ratio:"約3.0倍"},
+    "医":      {kt:[50,50,50,50,50,25], ktR:2, nj:[150,250,300,300], njR:2, v:"--f4",
+                eng:[150,50], st:[200,100,200,200,200,100], stR:2, ratio:"約3.0倍", stMin:700},
+    "人間健康":{kt:[50,50,50,50,50,25], ktR:2, nj:[150,200,200,200], njR:2, v:"--f4", facLabel:"医",
+                eng:[150,50], st:[200,100,200,200,200,100], stR:2, ratio:"約3.5倍"},
+    "薬":      {kt:[40,40,40,40,40,20], ktR:2, nj:[100,200,200,200], njR:2, v:"--f2",
+                eng:[150,50], st:[200,100,200,200,200,50],  stR:2, ratio:"約3.5倍"},
+    "工":      {kt:[25,50,25,25,50,50], ktR:2, nj:[100,250,250,200], njR:2, v:"--f1",
+                eng:[100,100], st:[200,100,200,200,200,100], stR:2, ratio:"約3.0倍",
+                stScope:"工学部全体"},
+    "農":      {kt:[70,100,50,50,50,30],ktR:2, nj:[100,200,200,200], njR:2, v:"--f5",
+                eng:[150,50], st:[200,100,200,200,200,100], stR:2, ratio:"約3.5倍",
+                stScope:"農学部全体"}
+  };
+  var RAW = [
+    ["総合人間","総合理系",53,485,438,402], ["教育","教育理系",10,543,515,488],
+    ["経済","経済理系",25,644,601,559],     ["理","理",274,700,650,583],
+    ["医","医",103,871,800,726],            ["人間健康","人間健康",66,500,448,406],
+    ["薬","薬",74,500,452,406],             ["工","理工化学",215,549,497,453],
+    ["工","電気電子",128,587,535,497],      ["工","情報",94,626,592,547],
+    ["工","建築",77,578,537,491],           ["工","地球工",175,563,509,474],
+    ["工","物理工",225,592,550,505],        ["農","資源生物",91,596,553,511],
+    ["農","応用生命",43,596,555,522],       ["農","地域環境",34,605,567,519],
+    ["農","食料環境",29,599,555,515],       ["農","森林科学",47,591,543,501],
+    ["農","食品生物",30,599,546,508]
+  ];
+
+  var KT_DEF = [
+    {k:"engR",label:"英語R",max:100,val:0}, {k:"engL",label:"英語L",max:100,val:0},
+    {k:"m1",label:"数ⅠA",max:100,val:0},   {k:"m2",label:"数ⅡBC",max:100,val:0},
+    {k:"kok",label:"国語",max:200,val:0},  {k:"sci1",label:"理科①",max:100,val:0},
+    {k:"sci2",label:"理科②",max:100,val:0}, {k:"soc",label:"地歴公民",max:100,val:0},
+    {k:"joho",label:"情報Ⅰ",max:100,val:0}
+  ];
+  var NJ_DEF = [
+    {k:"eng",label:"英語",max:150,val:0},  {k:"math",label:"数学",max:200,val:0},
+    {k:"kok",label:"国語",max:100,val:0},  {k:"sci1",label:"理科①",max:100,val:0},
+    {k:"sci2",label:"理科②",max:100,val:0}
+  ];
+  var STORE="kyodai-rikei-scores-v3";
+
+  var lg=function(p){ return Math.log(p/(1-p)); };
+  var YS=[lg(.35), lg(.50), lg(.65), lg(.80)];
+
+  var DATA = RAW.map(function(r){
+    var f=FAC[r[0]];
+    var tot=f.kt.reduce(function(a,b){return a+b;},0)+f.nj.reduce(function(a,b){return a+b;},0);
+    var A=r[3],B=r[4],C=r[5],Dd=2*C-B;
+    var xs=[Dd/tot*100, C/tot*100, B/tot*100, A/tot*100];
+    var o={facKey:r[0], fac:(f.facLabel||r[0]), dep:r[1], cap:r[2],
+           A:A,B:B,C:C,D:Dd,tot:tot,v:f.v,xs:xs,aRate:A/tot*100, mine:false};
+    o.p=function(x){
+      var y;
+      if(x<=xs[0]) y=YS[0]+(x-xs[0])*(YS[1]-YS[0])/(xs[1]-xs[0]);
+      else if(x>=xs[3]) y=YS[3]+(x-xs[3])*(YS[3]-YS[2])/(xs[3]-xs[2]);
+      else { for(var i=0;i<3;i++){ if(x<=xs[i+1]){
+        y=YS[i]+(x-xs[i])*(YS[i+1]-YS[i])/(xs[i+1]-xs[i]); break; } } }
+      return 100/(1+Math.exp(-y));
+    };
+    return o;
+  });
+
+  var FACS=[];
+  DATA.forEach(function(d){
+    if(!FACS.some(function(f){ return f.key===d.facKey; }))
+      FACS.push({key:d.facKey, name:(d.dep==="人間健康"?"医･人間健康":d.fac), v:d.v, on:true, n:0});
+  });
+  FACS.forEach(function(f){ f.n=DATA.filter(function(d){ return d.facKey===f.key; }).length; });
+
+  var css=getComputedStyle(document.documentElement);
+  var col=function(v){ return css.getPropertyValue(v).trim()||"#888"; };
+
+  var kt={}, nj={};
+  var opts={focus:"情報", sci1st:1, target:"A"};
+
+  function buildFields(defs, store, host, prefix){
+    defs.forEach(function(d){
+      store[d.k]=d.val;
+      var w=document.createElement("div"); w.className="field";
+      var id=prefix+"-"+d.k;
+      w.innerHTML="<label for='"+id+"'>"+d.label+"<span>/"+d.max+"</span></label>"+
+        "<input id='"+id+"' type='number' inputmode='numeric' min='0' max='"+d.max+
+        "' step='1' placeholder='0' value=''>";
+      var inp=w.querySelector("input");
+      inp.addEventListener("input", function(){
+        var v=parseFloat(inp.value);
+        var bad=!(v>=0 && v<=d.max);
+        inp.classList.toggle("bad", inp.value!=="" && bad);
+        store[d.k]= (isNaN(v)?0:Math.max(0,Math.min(d.max,v)));
+        recompute();
+      });
+      d.input=inp; host.appendChild(w);
+    });
+  }
+  buildFields(KT_DEF, kt, document.getElementById("ktFields"), "kt");
+  buildFields(NJ_DEF, nj, document.getElementById("njFields"), "nj");
+
+  // ---- 素点 → 学部別得点 ----------------------------------------------------
+  // 共通テスト英語は学部ごとの換算規則（工学部のみ R100:L100、他は R150:L50）で
+  // 200点満点の得点をつくってから、その学部の外国語配点に圧縮する。
+  function engConv(f){ return kt.engR*f.eng[0]/100 + kt.engL*f.eng[1]/100; }
+  function ktSci(f){
+    if(f.ktR===2) return (kt.sci1+kt.sci2)/200;
+    return (opts.sci1st===1 ? kt.sci1 : kt.sci2)/100;
+  }
+  function njSci(f){
+    if(f.njR===0) return 0;
+    if(f.njR===2) return (nj.sci1+nj.sci2)/200;
+    return Math.max(nj.sci1,nj.sci2)/100;
+  }
+  function facScore(key){
+    var f=FAC[key];
+    var a=kt.kok/200*f.kt[0] + kt.soc/100*f.kt[1] + (kt.m1+kt.m2)/200*f.kt[2]
+        + ktSci(f)*f.kt[3] + engConv(f)/200*f.kt[4] + kt.joho/100*f.kt[5];
+    var b=nj.kok/100*f.nj[0] + nj.math/200*f.nj[1] + njSci(f)*f.nj[2] + nj.eng/150*f.nj[3];
+    return a+b;
+  }
+  // 第1段階選抜は二次とは別配点。共通テストのみで、素点に近いスケール。
+  function stageScore(key){
+    var f=FAC[key], s=f.st;
+    var sci = f.stR===2 ? (kt.sci1+kt.sci2)/200*s[3]
+                        : (opts.sci1st===1?kt.sci1:kt.sci2)/100*s[3];
+    return kt.kok/200*s[0] + kt.soc/100*s[1] + (kt.m1+kt.m2)/200*s[2]
+         + sci + engConv(f)/200*s[4] + kt.joho/100*s[5];
+  }
+  function stageTotal(key){
+    return FAC[key].st.reduce(function(a,b){return a+b;},0);
+  }
+
+  // 素点1点あたり総合点が何点増えるか（＝配点から決まる純粋な重み）
+  function leverage(key){
+    var f=FAC[key], L=[];
+    L.push({g:"共テ",k:"engR",label:"英語 リーディング",max:100,val:kt.engR, lev:f.kt[4]*f.eng[0]/20000});
+    L.push({g:"共テ",k:"engL",label:"英語 リスニング", max:100,val:kt.engL, lev:f.kt[4]*f.eng[1]/20000});
+    L.push({g:"共テ",k:"m1",  label:"数学ⅠA",        max:100,val:kt.m1,   lev:f.kt[2]/200});
+    L.push({g:"共テ",k:"m2",  label:"数学ⅡBC",       max:100,val:kt.m2,   lev:f.kt[2]/200});
+    L.push({g:"共テ",k:"kok", label:"国語",           max:200,val:kt.kok,  lev:f.kt[0]/200});
+    L.push({g:"共テ",k:"sci1",label:"理科①",          max:100,val:kt.sci1,
+            lev: f.ktR===2 ? f.kt[3]/200 : (opts.sci1st===1 ? f.kt[3]/100 : 0)});
+    L.push({g:"共テ",k:"sci2",label:"理科②",          max:100,val:kt.sci2,
+            lev: f.ktR===2 ? f.kt[3]/200 : (opts.sci1st===2 ? f.kt[3]/100 : 0)});
+    L.push({g:"共テ",k:"soc", label:"地歴公民",       max:100,val:kt.soc,  lev:f.kt[1]/100});
+    L.push({g:"共テ",k:"joho",label:"情報Ⅰ",          max:100,val:kt.joho, lev:f.kt[5]/100});
+    var better = nj.sci2>nj.sci1 ? 2 : 1;
+    L.push({g:"二次",k:"eng", label:"英語",  max:150,val:nj.eng,  lev:f.nj[3]/150});
+    L.push({g:"二次",k:"math",label:"数学",  max:200,val:nj.math, lev:f.nj[1]/200});
+    L.push({g:"二次",k:"kok", label:"国語",  max:100,val:nj.kok,  lev:f.nj[0]/100});
+    L.push({g:"二次",k:"sci1",label:"理科①", max:100,val:nj.sci1,
+            lev: f.njR===2 ? f.nj[2]/200 : f.njR===1 ? (better===1?f.nj[2]/100:0) : 0});
+    L.push({g:"二次",k:"sci2",label:"理科②", max:100,val:nj.sci2,
+            lev: f.njR===2 ? f.nj[2]/200 : f.njR===1 ? (better===2?f.nj[2]/100:0) : 0});
+    L.forEach(function(r){ r.room=(r.max-r.val)*r.lev; });
+    return L;
+  }
+
+  // 成績表の凡例どおり、二次・総合の判定は A/B/C/D の4段階。E は存在しない。
+  // 公表されている A/B/C 基準点と得点を直接比較して決める（確率の仮定を使わない）。
+  function gradeOf(d){ return d.score>=d.A?"A":d.score>=d.B?"B":d.score>=d.C?"C":"D"; }
+  function gradeCol(g){ return col("--g"+g); }
+  function focusDep(){
+    return DATA.filter(function(d){ return d.dep===opts.focus; })[0] || DATA[0];
+  }
+
+  // ---- 第一志望パネル -------------------------------------------------------
+  var fSel=document.getElementById("focusSel");
+  DATA.forEach(function(d){
+    var o=document.createElement("option");
+    o.value=d.dep; o.textContent=d.fac+"・"+d.dep;
+    fSel.appendChild(o);
+  });
+  fSel.addEventListener("change",function(){
+    opts.focus=fSel.value;
+    DATA.forEach(function(d){ d.mine=(d.dep===opts.focus); });
+    recompute();
+  });
+  document.getElementById("sci1st").addEventListener("change",function(){
+    opts.sci1st=parseInt(this.value,10); recompute();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".tgt"),function(b){
+    b.addEventListener("click",function(){
+      opts.target=b.dataset.t;
+      Array.prototype.forEach.call(document.querySelectorAll(".tgt"),function(x){
+        x.setAttribute("aria-pressed", x.dataset.t===opts.target?"true":"false"); });
+      drawFocus(); drawLeverage(); save();
+    });
+  });
+
+  function drawFocus(){
+    var d=focusDep(), f=FAC[d.facKey], empty=inputTotal()===0;
+    var card=document.getElementById("focusCard");
+    card.style.setProperty("--fc", col(d.v));
+    var seats = f.stScope ? (d.facKey==="工"?"第2志望まで学科を選べる":"第6志望まで学科を選べる") : null;
+    document.getElementById("focusSub").innerHTML =
+      "募集人員 "+d.cap+"人・総合配点 "+d.tot+"点（共通テスト "+
+      f.kt.reduce(function(a,b){return a+b;},0)+"／二次 "+
+      f.nj.reduce(function(a,b){return a+b;},0)+"）。A基準 "+d.A+"・B基準 "+d.B+"・C基準 "+d.C+
+      "点。"+(seats?seats+"。":"");
+
+    var g = empty ? null : gradeOf(d);
+    var nums=document.getElementById("focusNums");
+    nums.innerHTML=
+      "<div class='bn'><dt>総合得点</dt><dd>"+(empty?"—":Math.round(d.score))+
+        "<small> / "+d.tot+"</small></dd></div>"+
+      "<div class='bn'><dt>得点率</dt><dd>"+(empty?"—":d.rate.toFixed(1)+"<small>%</small>")+"</dd></div>"+
+      "<div class='bn'><dt>総合判定</dt><dd>"+(empty?"—":
+        "<span class='gbig' style='background:"+gradeCol(g)+"'>"+g+"</span>")+"</dd></div>"+
+      "<div class='bn'><dt>合格可能性（推定）</dt><dd>"+(empty?"—":d.now.toFixed(0)+"<small>%</small>")+"</dd></div>";
+
+    var steps=document.getElementById("focusSteps");
+    steps.innerHTML=["C","B","A"].map(function(t){
+      var need=d[t]-(d.score||0), hit=!empty && need<=0;
+      return "<div class='step"+(hit?" hit":"")+"'><i style='background:"+gradeCol(t)+"'></i>"+
+        "<b>"+t+"基準 "+d[t]+"点</b><span class='v'>"+
+        (empty?"—":(hit?"到達":"+"+Math.ceil(need)))+"</span></div>";
+    }).join("");
+
+    var st=stageScore(d.facKey), stT=stageTotal(d.facKey);
+    var gate=document.getElementById("focusGate");
+    var scope=f.stScope ? f.stScope+"の志願者をまとめて" : "この募集単位で";
+    var line="";
+    if(f.stMin!==undefined && !empty){
+      line = st>=f.stMin
+        ? "<span class='okpill'>700点の条件はクリア</span>"
+        : "<span class='warnpill'>700点に "+Math.ceil(f.stMin-st)+"点 足りない</span>";
+    }
+    gate.innerHTML=
+      "<h4>第1段階選抜（足切り）— 二次とは別の配点</h4>"+
+      "<div class='g1'><span>"+(empty?"—":Math.round(st))+" / "+stT+"</span>"+
+      (empty?"":"<span style='font-size:12px;color:var(--muted)'>"+(st/stT*100).toFixed(1)+"%</span>")+
+      (line?"<span>"+line+"</span>":"")+"</div>"+
+      "<p>"+scope+"、共通テストの得点合計を "+stT+"点満点で並べ、志願者が募集人員の"+f.ratio+
+      "を超えた場合に上位から選抜される。"+
+      (f.stMin!==undefined
+        ? "医学科はこれに加えて<strong>1000点中700点以上</strong>が明示された必須条件。"
+        : "具体的な点数ラインは公表されていない（公表があるのは医学科の700点のみ）。")+
+      "</p>";
+  }
+
+  // ---- レバレッジ表 ---------------------------------------------------------
+  function drawLeverage(){
+    var d=focusDep(), L=leverage(d.facKey), empty=inputTotal()===0;
+    var need = d[opts.target]-(d.score||0);
+    document.getElementById("lvSub").textContent =
+      d.fac+"・"+d.dep+"の配点で、素点1点が総合点に何点として効くか。"+
+      "共通テストの圧縮率は学部ごとに大きく違うので、同じ1点でも価値が数倍変わる。";
+    document.getElementById("thNeed").textContent = opts.target+"基準まで この科目だけで";
+    var maxRoom=Math.max.apply(null, L.map(function(r){ return r.room; }));
+    if(maxRoom<=0) maxRoom=1;
+    var body=document.getElementById("lvBody");
+    body.innerHTML=L.map(function(r){
+      var dim = r.lev===0;
+      var cell;
+      if(dim) cell="<td class='no'>配点なし</td>";
+      else if(empty) cell="<td class='no'>—</td>";
+      else if(need<=0) cell="<td class='no'>到達済み</td>";
+      else {
+        var raw=need/r.lev, head=r.max-r.val;
+        cell = raw<=head
+          ? "<td class='need'>素点 +"+Math.ceil(raw)+"</td>"
+          : "<td class='no'>満点でも届かない</td>";
+      }
+      return "<tr class="+(dim?"'dim'":"''")+">"+
+        "<td>"+r.g+"　"+r.label+"</td>"+
+        "<td>"+(empty?"—":r.val)+" / "+r.max+"</td>"+
+        "<td>"+(dim?"0":"+"+r.lev.toFixed(3))+"</td>"+
+        "<td class='gaugecell'><div class='gauge'><span style='width:"+
+          (r.room/maxRoom*100).toFixed(1)+"%;background:"+col(d.v)+"'></span></div></td>"+
+        cell+"</tr>";
+    }).join("");
+    var top=L.slice().filter(function(r){return r.lev>0;})
+             .sort(function(a,b){ return b.room-a.room; })[0];
+    document.getElementById("lvNote").textContent = empty
+      ? "素点を入れると、残りの伸びしろと「目標まであと何点」が出る。"
+      : (top ? "いま総合点を最も大きく動かせるのは「"+top.g+" "+top.label+
+               "」で、満点まで取り切れば総合 +"+top.room.toFixed(0)+"点。" : "");
+  }
+
+  // ---- ranked rows ----
+  var rowsEl=document.getElementById("rows");
+  var sbar=document.getElementById("scalebar");
+  var BAR0=25, BAR1=75;
+  function barPos(rate){ return Math.max(0,Math.min(100,(rate-BAR0)/(BAR1-BAR0)*100)); }
+  function drawScale(){
+    sbar.textContent="";
+    for(var t=BAR0; t<=BAR1; t+=10){
+      var e=document.createElement("span"), pos=barPos(t);
+      e.style.left=pos+"%"; e.textContent=t+"%";
+      if(pos<1) e.style.transform="none";
+      else if(pos>99) e.style.transform="translateX(-100%)";
+      sbar.appendChild(e);
+    }
+  }
+  function buildRows(){
+    rowsEl.textContent="";
+    var empty = inputTotal()===0;
+    var list = DATA.slice().sort(function(a,b){
+      return empty ? b.aRate-a.aRate : b.now-a.now; });
+    list.forEach(function(d){
+      var g=gradeOf(d), gap=Math.round(d.A-d.score);
+      var r=document.createElement("div");
+      r.className="row"+(d.mine?" mine":"");
+      r.style.setProperty("--cols", COLS);
+      r.dataset.dep=d.dep;
+      var w=barPos(d.rate);
+      var ticks=
+        "<div class='tk' style='left:"+barPos(d.C/d.tot*100)+"%;background:var(--gC)' title='C基準'></div>"+
+        "<div class='tk' style='left:"+barPos(d.B/d.tot*100)+"%;background:var(--gB)' title='B基準'></div>"+
+        "<div class='tk' style='left:"+barPos(d.A/d.tot*100)+"%;background:var(--gA)' title='A基準'></div>";
+      r.innerHTML=
+        "<div class='nm'><i style='background:"+col(d.v)+"'></i><b>"+d.dep+"</b><em>"+d.fac+"</em>"+
+          (d.mine?"<span class='pin'>第一志望</span>":"")+"</div>"+
+        "<div class='num c-score'>"+(empty?"—":Math.round(d.score)+" / "+d.tot)+"</div>"+
+        "<div class='num c-rate'>"+(empty?"—":d.rate.toFixed(1)+"%")+"</div>"+
+        "<div class='bar'>"+
+          (empty?"":"<div class='fill' style='width:"+w.toFixed(1)+"%;background:"+col(d.v)+"'></div>")+
+          ticks+
+          (empty?"":"<div class='val c-rate2' style='left:"+w.toFixed(1)+"%'>"+d.rate.toFixed(1)+"%</div>")+
+        "</div>"+
+        (empty ? "<span class='gchip muted-chip'>—</span>"
+               : "<span class='gchip' style='background:"+gradeCol(g)+"'>"+g+"</span>")+
+        "<div class='num c-prob est'>"+(empty?"—":d.now.toFixed(0)+"%")+"</div>"+
+        "<div class='num c-gap'>"+(empty?"—":(gap>0?"+"+gap:gap))+"</div>";
+      r.addEventListener("mouseenter", function(){ hover=d.dep; drawChart(); });
+      r.addEventListener("mouseleave", function(){ hover=null; drawChart(); });
+      rowsEl.appendChild(r);
+    });
+  }
+
+  // ---- 配点表（計算の方法セクション） ----
+  (function haiten(){
+    var t=document.getElementById("haiten");
+    var head="<tr><th>学部</th><th>国</th><th>地公</th><th>数</th><th>理</th><th>外</th><th>情</th>"+
+             "<th>共テ計</th><th>二次 国</th><th>数</th><th>理</th><th>外</th><th>二次計</th><th>合計</th></tr>";
+    var names={"総合人間":"総合人間 理系","教育":"教育 理系","経済":"経済 理系","理":"理",
+               "医":"医 医学科","人間健康":"医 人間健康","薬":"薬","工":"工","農":"農"};
+    var body=Object.keys(FAC).map(function(k){
+      var f=FAC[k], a=f.kt.reduce(function(x,y){return x+y;},0),
+          b=f.nj.reduce(function(x,y){return x+y;},0);
+      var c=function(n){ return n===0?"<span style='color:var(--muted)'>—</span>":n; };
+      return "<tr><td>"+names[k]+"</td><td>"+c(f.kt[0])+"</td><td>"+c(f.kt[1])+"</td><td>"+c(f.kt[2])+
+        "</td><td>"+c(f.kt[3])+"</td><td>"+c(f.kt[4])+"</td><td>"+c(f.kt[5])+"</td><td>"+a+
+        "</td><td>"+c(f.nj[0])+"</td><td>"+c(f.nj[1])+"</td><td>"+c(f.nj[2])+"</td><td>"+c(f.nj[3])+
+        "</td><td>"+b+"</td><td><strong>"+(a+b)+"</strong></td></tr>";
+    }).join("");
+    t.innerHTML="<thead>"+head+"</thead><tbody>"+body+"</tbody>";
+  })();
+
+  // ---- chart ----
+  var L=52,R=30,T=16,B=56,W=900,H=470;
+  var pw=W-L-R, ph=H-T-B;
+  var X0=35, X1=75;
+  var sx=function(v){ return L+(Math.max(X0,Math.min(X1,v))-X0)/(X1-X0)*pw; };
+  var sy=function(v){ return T+(1-v/100)*ph; };
+  var NS="http://www.w3.org/2000/svg";
+  var svg=document.getElementById("chart");
+  function el(t,a){ var n=document.createElementNS(NS,t); for(var k in a) n.setAttribute(k,a[k]); return n; }
+  function txt(x,y,s,a){ var n=el("text",a||{}); n.setAttribute("x",x); n.setAttribute("y",y); n.textContent=s; return n; }
+  var muted=col("--muted"), grid=col("--grid"), axis=col("--axis"),
+      ink2=col("--ink-2"), surface=col("--surface");
+  var monoF='"IBM Plex Mono", ui-monospace, monospace';
+  var sansF='"Zen Kaku Gothic New", system-ui, sans-serif';
+
+  var gBase=el("g",{}); svg.appendChild(gBase);
+  var gCurve=el("g",{}); svg.appendChild(gCurve);
+  var gMark=el("g",{});  svg.appendChild(gMark);
+  var gLab=el("g",{});   svg.appendChild(gLab);
+  var cross=el("line",{x1:0,x2:0,y1:T,y2:T+ph,stroke:ink2,"stroke-width":1,opacity:0});
+  svg.appendChild(cross);
+  var gDots=el("g",{}); svg.appendChild(gDots);
+  var hit=el("rect",{x:L,y:T,width:pw,height:ph,fill:"transparent"}); svg.appendChild(hit);
+
+  function drawBase(){
+    gBase.textContent="";
+    [0,20,40,60,80,100].forEach(function(v){
+      gBase.appendChild(el("line",{x1:L,x2:L+pw,y1:sy(v),y2:sy(v),stroke:grid,"stroke-width":1}));
+      gBase.appendChild(txt(L-10,sy(v)+4,v+"%",{fill:muted,"font-size":11.5,"font-family":monoF,"text-anchor":"end"}));
+    });
+    var step=(X1-X0)>30?5:(X1-X0)>14?2:1;
+    for(var t=Math.ceil(X0/step)*step; t<=X1; t+=step){
+      gBase.appendChild(el("line",{x1:sx(t),x2:sx(t),y1:T+ph,y2:T+ph+6,stroke:axis,"stroke-width":1}));
+      gBase.appendChild(txt(sx(t),T+ph+22,t+"%",{fill:muted,"font-size":11.5,"font-family":monoF,"text-anchor":"middle"}));
+    }
+    gBase.appendChild(txt(L+pw/2,T+ph+44,"総合得点率",
+      {fill:ink2,"font-size":12,"font-family":sansF,"text-anchor":"middle"}));
+    gBase.appendChild(el("line",{x1:L,x2:L+pw,y1:T+ph,y2:T+ph,stroke:axis,"stroke-width":1}));
+    [[80,"A"],[65,"B"],[50,"C"],[35,"D"]].forEach(function(th){
+      gBase.appendChild(el("line",{x1:L,x2:L+pw,y1:sy(th[0]),y2:sy(th[0]),stroke:axis,"stroke-width":1}));
+      var g=el("g",{});
+      g.appendChild(el("rect",{x:L+pw-36,y:sy(th[0])-9,width:34,height:17,rx:2,fill:surface}));
+      g.appendChild(txt(L+pw-19,sy(th[0])+3,th[1]+"判定",
+        {fill:muted,"font-size":10,"font-family":sansF,"text-anchor":"middle"}));
+      gBase.appendChild(g);
+    });
+  }
+
+  var hover=null;
+  function visible(){
+    return DATA.filter(function(d){
+      return FACS.some(function(f){ return f.key===d.facKey && f.on; }); });
+  }
+  function halo(n){
+    n.setAttribute("stroke",surface); n.setAttribute("stroke-width",3.5);
+    n.setAttribute("paint-order","stroke"); n.setAttribute("stroke-linejoin","round");
+    return n;
+  }
+  function drawChart(){
+    gCurve.textContent=""; gMark.textContent=""; gLab.textContent="";
+    var vis=visible();
+    vis.forEach(function(d){
+      var pts=[],x;
+      for(x=X0;x<=X1;x+=0.3) pts.push(sx(x).toFixed(1)+","+sy(d.p(x)).toFixed(1));
+      var em=(hover===d.dep);
+      gCurve.appendChild(el("path",{d:"M"+pts.join("L"),fill:"none",stroke:col(d.v),
+        "stroke-width":em?3.4:(d.mine?2.4:1.7),"stroke-linecap":"round","stroke-linejoin":"round",
+        opacity: hover?(em?1:0.16):(d.mine?0.95:0.6)}));
+    });
+    if(inputTotal()>0) vis.forEach(function(d){
+      var em=(hover===d.dep);
+      gMark.appendChild(el("circle",{cx:sx(d.rate),cy:sy(d.now),r:em?7:4.5,
+        fill:col(d.v),stroke:surface,"stroke-width":2,
+        opacity: hover?(em?1:0.2):1}));
+    });
+    if(hover){
+      var hd=DATA.filter(function(x){ return x.dep===hover; })[0];
+      if(hd) gLab.appendChild(halo(txt(sx(hd.rate)+13, sy(hd.now)-12,
+        hd.fac+"・"+hd.dep+" "+hd.now.toFixed(1)+"%",
+        {fill:col(hd.v),"font-size":13,"font-family":sansF,"font-weight":"700"})));
+    } else if(inputTotal()>0){
+      var lab=vis.filter(function(d){ return d.mine; })
+                 .map(function(d){ return {d:d,y:sy(d.now)+4}; })
+                 .sort(function(a,b){ return a.y-b.y; });
+      for(var i=1;i<lab.length;i++)
+        if(lab[i].y-lab[i-1].y<18) lab[i].y=lab[i-1].y+18;
+      lab.forEach(function(o){
+        var mx=sx(o.d.rate), my=sy(o.d.now), tx=mx+13;
+        if(Math.abs(o.y-4-my)>3)
+          gLab.appendChild(el("line",{x1:mx+6,x2:tx-3,y1:my,y2:o.y-4,
+            stroke:col(o.d.v),"stroke-width":1,opacity:.5}));
+        gLab.appendChild(halo(txt(tx,o.y,o.d.dep+" "+o.d.now.toFixed(1)+"%",
+          {fill:col(o.d.v),"font-size":12.5,"font-family":sansF,"font-weight":"500"})));
+      });
+    }
+    Array.prototype.forEach.call(rowsEl.children, function(r){
+      r.style.opacity = (hover && r.dataset.dep!==hover) ? .4 : 1;
+    });
+  }
+
+  var tip=document.getElementById("tip"), plot=svg.parentNode;
+  function move(ev){
+    var r=svg.getBoundingClientRect();
+    var cx=((ev.touches?ev.touches[0].clientX:ev.clientX)-r.left)/r.width*W;
+    var rate=Math.max(X0,Math.min(X1,X0+(cx-L)/pw*(X1-X0)));
+    rate=Math.round(rate*2)/2;
+    var px=sx(rate);
+    cross.setAttribute("x1",px); cross.setAttribute("x2",px); cross.setAttribute("opacity",1);
+    var vis=visible().map(function(d){ return {d:d,p:d.p(rate)}; })
+                     .sort(function(a,b){ return b.p-a.p; });
+    gDots.textContent="";
+    vis.forEach(function(o){
+      gDots.appendChild(el("circle",{cx:px,cy:sy(o.p),r:3.5,fill:col(o.d.v),
+        stroke:surface,"stroke-width":1.5}));
+    });
+    var two=vis.length>7;
+    tip.innerHTML="<h4>得点率 "+rate.toFixed(1)+"%</h4><ul style='grid-template-columns:repeat("+
+      (two?2:1)+",auto)'>"+vis.map(function(o){
+        return "<li><i style='background:"+col(o.d.v)+"'></i>"+o.d.dep+
+               "<b>"+o.p.toFixed(1)+"%</b></li>"; }).join("")+"</ul>";
+    tip.classList.add("on");
+    var pr=plot.getBoundingClientRect(), lx=px/W*pr.width;
+    tip.style.left=Math.max(4,Math.min(pr.width-tip.offsetWidth-4,lx+16))+"px";
+    tip.style.top="10px";
+  }
+  function leave(){ cross.setAttribute("opacity",0); tip.classList.remove("on"); gDots.textContent=""; }
+  hit.addEventListener("mousemove",move);
+  hit.addEventListener("mouseleave",leave);
+  hit.addEventListener("touchmove",function(e){ move(e); },{passive:true});
+  hit.addEventListener("touchend",leave);
+
+  var fw=document.getElementById("filters");
+  FACS.forEach(function(f){
+    var b=document.createElement("button");
+    b.type="button"; b.className="fchip"; b.setAttribute("aria-pressed","true");
+    b.innerHTML="<span class='sw' style='background:"+col(f.v)+"'></span>"+f.name+
+                "<span class='n'>"+f.n+"</span>";
+    b.addEventListener("click",function(){
+      f.on=!f.on; b.setAttribute("aria-pressed",f.on?"true":"false"); drawChart();
+    });
+    fw.appendChild(b);
+  });
+  var allb=document.createElement("button");
+  allb.type="button"; allb.className="btn"; allb.textContent="すべて表示";
+  allb.style.padding="4px 12px"; allb.style.fontSize="12.5px";
+  allb.addEventListener("click",function(){
+    FACS.forEach(function(f){ f.on=true; });
+    Array.prototype.forEach.call(fw.querySelectorAll(".fchip"),function(b){
+      b.setAttribute("aria-pressed","true"); });
+    drawChart();
+  });
+  fw.appendChild(allb);
+
+  function inputTotal(){
+    var t=0;
+    KT_DEF.forEach(function(f){ t+=kt[f.k]; });
+    NJ_DEF.forEach(function(f){ t+=nj[f.k]; });
+    return t;
+  }
+  function recompute(){
+    var cache={};
+    DATA.forEach(function(d){
+      if(cache[d.facKey]===undefined) cache[d.facKey]=facScore(d.facKey);
+      d.score=cache[d.facKey];
+      d.rate=d.score/d.tot*100;
+      d.now=d.p(d.rate);
+    });
+    var maxRate=Math.max.apply(null, DATA.map(function(d){ return d.rate; }));
+    BAR0=25; BAR1=Math.max(75, Math.ceil((maxRate+5)/5)*5);
+    drawScale();
+    var rates=DATA.map(function(d){ return d.rate; });
+    var lo, hi;
+    if(inputTotal()===0){
+      lo=Math.min.apply(null, DATA.map(function(d){ return d.C/d.tot*100; }));
+      hi=Math.max.apply(null, DATA.map(function(d){ return d.aRate; }));
+    } else {
+      lo=Math.min.apply(null,rates); hi=Math.max.apply(null,rates);
+    }
+    X0=Math.max(0, Math.floor((lo-6)/5)*5);
+    X1=Math.min(100, Math.ceil((hi+6)/5)*5);
+    if(X1-X0<20){ var mid=(X0+X1)/2; X0=Math.max(0,mid-10); X1=Math.min(100,mid+10); }
+    var kTot=0,nTot=0;
+    KT_DEF.forEach(function(f){ kTot+=kt[f.k]; });
+    NJ_DEF.forEach(function(f){ nTot+=nj[f.k]; });
+    document.getElementById("ktTot").textContent=Math.round(kTot)+" / 1000　("+(kTot/10).toFixed(1)+"%)";
+    document.getElementById("njTot").textContent=Math.round(nTot)+" / 650　("+(nTot/6.5).toFixed(1)+"%)";
+    drawFocus(); drawLeverage();
+    buildRows(); drawBase(); drawChart(); save();
+  }
+  function save(){
+    try{ localStorage.setItem(STORE,JSON.stringify({kt:kt,nj:nj,opts:opts}));
+         document.getElementById("saveNote").textContent="入力内容はこのブラウザに保存されます";
+    }catch(e){ document.getElementById("saveNote").textContent=""; }
+  }
+  function load(){
+    try{
+      var raw=localStorage.getItem(STORE); if(!raw) return;
+      var o=JSON.parse(raw);
+      KT_DEF.forEach(function(f){ if(o.kt && typeof o.kt[f.k]==="number"){ kt[f.k]=o.kt[f.k]; f.input.value=o.kt[f.k]; } });
+      NJ_DEF.forEach(function(f){ if(o.nj && typeof o.nj[f.k]==="number"){ nj[f.k]=o.nj[f.k]; f.input.value=o.nj[f.k]; } });
+      if(o.opts){
+        if(DATA.some(function(d){ return d.dep===o.opts.focus; })) opts.focus=o.opts.focus;
+        if(o.opts.sci1st===1||o.opts.sci1st===2) opts.sci1st=o.opts.sci1st;
+        if(["A","B","C"].indexOf(o.opts.target)>=0) opts.target=o.opts.target;
+      }
+    }catch(e){}
+  }
+  document.getElementById("clear").addEventListener("click",function(){
+    KT_DEF.forEach(function(f){ kt[f.k]=0; f.input.value=""; f.input.classList.remove("bad"); });
+    NJ_DEF.forEach(function(f){ nj[f.k]=0; f.input.value=""; f.input.classList.remove("bad"); });
+    recompute();
+  });
+
+  load();
+  fSel.value=opts.focus;
+  document.getElementById("sci1st").value=String(opts.sci1st);
+  Array.prototype.forEach.call(document.querySelectorAll(".tgt"),function(x){
+    x.setAttribute("aria-pressed", x.dataset.t===opts.target?"true":"false"); });
+  DATA.forEach(function(d){ d.mine=(d.dep===opts.focus); });
+  recompute();
+})();
+</script>
+<!-- ARTIFACT:END -->
+<script>
+// GitHub Pages / 自前ホスティングでだけ Service Worker を登録する。
+// file:// と Artifact のサンドボックスでは登録できないので黙って諦める。
+if ("serviceWorker" in navigator && window.isSecureContext) {
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - claude/artifact-improvement-5fu7z1
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# ブランチに push すると push と pull_request の両方が発火する。ここを単に
+# group: pages にすると片方がもう片方を打ち消して cancelled になるので、
+# 打ち切ってよい検査は ref とイベントごとに分け、Pages へのデプロイだけを
+# deploy ジョブ側で直列化する。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ページが壊れていないかを見る本来のゲート。push でも PR でも回る。
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check the page parses and the fragment round-trips
+        run: |
+          test -f index.html
+          ./build.sh
+          diff <(sed -n '/ARTIFACT:START/,/ARTIFACT:END/p' index.html | sed '1d;$d') dist/artifact.html
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const html = readFileSync("index.html", "utf8");
+            for (const tag of ["<!doctype html>", "<title>", "manifest.webmanifest", "sw.js"]) {
+              if (!html.includes(tag)) throw new Error("index.html is missing " + tag);
+            }
+            JSON.parse(readFileSync("manifest.webmanifest", "utf8"));
+            new Function(readFileSync("sw.js", "utf8"));
+            console.log("ok");
+          '
+
+  # Pages が有効かどうかだけを調べる。deploy とは別ジョブにしてあるのは、
+  # environment: github-pages を宣言したジョブは走った時点でデプロイ記録を
+  # 作ってしまうため。中身を全部スキップしても「デプロイ済み」として残り、
+  # 実際には何も公開されていないのに Active と表示されて紛らわしい。
+  # 判定を手前に出しておけば、無効なときは deploy ジョブごと飛び、記録も残らない。
+  pages_status:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.probe.outputs.enabled }}
+    steps:
+      - name: Is Pages enabled on this repository?
+        id: probe
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh api "repos/${GITHUB_REPOSITORY}/pages" >/dev/null 2>&1; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "Pages は有効。デプロイに進みます。"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Pages が未設定::Settings → Pages → Source を「GitHub Actions」に設定すると、次の push から公開が始まります。この設定はワークフローからは行えません（admin 権限が必要）。"
+          fi
+
+  # 公開。Pages サイトの新規作成はリポジトリの admin 権限を要求する操作で、
+  # ワークフローの GITHUB_TOKEN では "Resource not accessible by integration" に
+  # なるため自動化できない。Settings → Pages → Source を「GitHub Actions」に
+  # する作業だけは人の手で一度行う。設定が入れば次の push からここが動きだす。
+  deploy:
+    needs: [check, pages_status]
+    if: needs.pages_status.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Stage the site
+        run: |
+          mkdir -p _site
+          cp index.html manifest.webmanifest sw.js icon.svg icon-maskable.svg .nojekyll _site/
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4
