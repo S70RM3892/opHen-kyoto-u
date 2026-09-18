@@ -1,0 +1,16 @@
+{
+  "name": "京大理系 合格可能性シミュレータ",
+  "short_name": "京大シミュレータ",
+  "description": "2027年度 第1回 京大入試オープンの素点から、京大理系19募集単位それぞれの配点で得点率・判定・第1段階選抜の位置を出す。",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f2f2ef",
+  "theme_color": "#f2f2ef",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
