@@ -22,7 +22,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ページが壊れていないかを見る本来のゲート。PR でもここが回る。
+  # ページが壊れていないかを見る本来のゲート。push でも PR でも回る。
   check:
     runs-on: ubuntu-latest
     steps:
@@ -44,14 +44,37 @@ jobs:
             console.log("ok");
           '
 
-  # 公開。Pages がまだ有効でないときは失敗させず、警告を出して飛ばす。
-  # Pages サイトの新規作成はリポジトリの admin 権限を要求する操作で、
-  # ワークフローの GITHUB_TOKEN では "Resource not accessible by integration" になる。
-  # Settings → Pages → Source を「GitHub Actions」にする作業だけは人の手で一度行う。
-  # 設定が入れば、次の push から下のステップがそのまま動きだす。
-  deploy:
-    needs: check
+  # Pages が有効かどうかだけを調べる。deploy とは別ジョブにしてあるのは、
+  # environment: github-pages を宣言したジョブは走った時点でデプロイ記録を
+  # 作ってしまうため。中身を全部スキップしても「デプロイ済み」として残り、
+  # 実際には何も公開されていないのに Active と表示されて紛らわしい。
+  # 判定を手前に出しておけば、無効なときは deploy ジョブごと飛び、記録も残らない。
+  pages_status:
     if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.probe.outputs.enabled }}
+    steps:
+      - name: Is Pages enabled on this repository?
+        id: probe
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh api "repos/${GITHUB_REPOSITORY}/pages" >/dev/null 2>&1; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "Pages は有効。デプロイに進みます。"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Pages が未設定::Settings → Pages → Source を「GitHub Actions」に設定すると、次の push から公開が始まります。この設定はワークフローからは行えません（admin 権限が必要）。"
+          fi
+
+  # 公開。Pages サイトの新規作成はリポジトリの admin 権限を要求する操作で、
+  # ワークフローの GITHUB_TOKEN では "Resource not accessible by integration" に
+  # なるため自動化できない。Settings → Pages → Source を「GitHub Actions」に
+  # する作業だけは人の手で一度行う。設定が入れば次の push からここが動きだす。
+  deploy:
+    needs: [check, pages_status]
+    if: needs.pages_status.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     concurrency:
       group: pages-deploy
@@ -62,32 +85,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Is Pages enabled on this repository?
-        id: pages_status
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if gh api "repos/${GITHUB_REPOSITORY}/pages" >/dev/null 2>&1; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::warning title=Pages が未設定::Settings → Pages → Source を「GitHub Actions」に設定すると、次の push から公開が始まります。この設定はワークフローからは行えません（admin 権限が必要）。"
-          fi
-
       - name: Stage the site
-        if: steps.pages_status.outputs.enabled == 'true'
         run: |
           mkdir -p _site
           cp index.html manifest.webmanifest sw.js icon.svg icon-maskable.svg .nojekyll _site/
 
       - uses: actions/configure-pages@v5
-        if: steps.pages_status.outputs.enabled == 'true'
-
       - uses: actions/upload-pages-artifact@v3
-        if: steps.pages_status.outputs.enabled == 'true'
         with:
           path: _site
-
       - id: deploy
         uses: actions/deploy-pages@v4
-        if: steps.pages_status.outputs.enabled == 'true'

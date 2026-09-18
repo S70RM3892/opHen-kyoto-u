@@ -27,10 +27,16 @@ python3 -m http.server 8765   # → http://127.0.0.1:8765/
 
 ## 公開
 
-`.github/workflows/pages.yml` は2つのジョブに分かれている。
+`.github/workflows/pages.yml` は3つのジョブに分かれている。
 
 - `check` — ページが壊れていないかを見る本来のゲート。push でも PR でも回る。
-- `deploy` — GitHub Pages への公開。push のときだけ回る。
+- `pages_status` — Pages が有効かどうかだけを調べる。
+- `deploy` — GitHub Pages への公開。`pages_status` が有効と答えたときだけ走る。
+
+判定を `deploy` の中ではなく手前のジョブに置いてあるのは、
+`environment: github-pages` を宣言したジョブは走った時点でデプロイ記録を
+作ってしまうため。中のステップを全部スキップしても「デプロイ済み・Active」と
+して残り、実際には何も公開されていないのに公開済みに見える。
 
 リポジトリ側で一度だけ **Settings → Pages → Source を「GitHub Actions」** に
 設定する必要がある。Pages サイトの新規作成は admin 権限を要求する操作で、
