@@ -268,7 +268,7 @@ svg.chart{display:block; width:100%; height:auto; max-width:100%; touch-action:p
 .hschip{display:inline-block; padding:1px 8px; border-radius:999px; font-family:var(--sans);
   font-size:11.5px; color:#fff; white-space:nowrap;}
 table.lv.hs{min-width:680px;}
-table.lv.lg{min-width:620px;}
+table.lv.lg{min-width:680px;} table.lv.lgf{min-width:520px;}
 table.lv.lg td:nth-child(2), table.lv.lg th:nth-child(2){text-align:left; font-family:var(--sans); color:var(--ink);}
 label.btn{padding:7px 14px; border:1px solid var(--rule); border-radius:999px; font-size:13px; color:var(--ink); cursor:pointer; line-height:1.5;}
 label.btn:hover{background:var(--chip);}
@@ -355,34 +355,57 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
   </section>
 
   <section class="card" id="lgCard">
-    <h2>複数回の成績から合格確率を出す</h2>
-    <p class="sub">1回分の判定は誤差が大きい。過去問・模試を解くたびに上の素点を入れてここで記録すると、各回を<strong>合格ラインからの差</strong>という同じ物差しに揃え、平均・ばらつき・推移と、次に本番を受けたときに合格ラインを超える確率を出す。合格ラインは、過去問ならその年度の<strong>合格最低点</strong>、京大オープンなら<strong>C基準</strong>（河合の定義で合格可能性50%＝ボーダー）、ほかの模試なら成績表に載っているC基準を自分で入れる。</p>
+    <h2>複数の模試・過去問から総合判定する</h2>
+    <p class="sub">1回分の判定は誤差が大きい。全統共テ・全統記述・京大オープン・過去問を、すべて<strong>「ボーダー（合格可能性50%の線）からの差を、その試験の標準偏差で割った値」</strong>にそろえて記録する。表示は偏差値の差に直した値（+5なら「ボーダーより偏差値5上」）。共テ側と二次側は第一志望の配点比率で重み付けして総合し、次に本番を受けたときにボーダーを超える確率を出す。</p>
     <div class="lgform">
       <label>種類
         <select class="sel" id="lgKind">
-          <option value="kako">過去問（京大本試）</option>
-          <option value="open">2027 第1回 京大オープン</option>
-          <option value="other">その他の模試（C基準を入力）</option>
+          <option value="zkt">全統共通テスト模試（共テ側）</option>
+          <option value="zkj">全統記述模試（二次側）</option>
+          <option value="open">2027 第1回 京大オープン（総合）</option>
+          <option value="kako">過去問・京大本試（総合）</option>
+          <option value="other">その他の京大型模試（総合）</option>
         </select></label>
-      <label id="lgYearWrap">年度
+      <label data-k="kako">年度
         <select class="sel" id="lgYear"></select></label>
-      <label id="lgLineWrap" hidden>C基準（総合点・第一志望）
-        <input class="sel" id="lgLine" type="number" inputmode="decimal" min="0" step="0.01" style="width:110px"></label>
+      <label data-k="other">C基準（総合点）
+        <input class="sel" id="lgLine" type="number" inputmode="decimal" min="0" step="0.01" style="width:100px"></label>
+      <label data-k="zkj">評価偏差値（志望校欄）
+        <input class="sel" id="lgDev" type="number" inputmode="decimal" step="0.1" style="width:100px"></label>
+      <label data-k="zkj">ボーダー偏差値
+        <input class="sel" id="lgBdev" type="number" inputmode="decimal" step="0.1" style="width:100px"></label>
+      <label data-k="zkt">京大の換算得点率 %
+        <input class="sel" id="lgRate" type="number" inputmode="decimal" step="0.1" style="width:100px"></label>
+      <label data-k="zkt">ボーダー得点率 %
+        <input class="sel" id="lgBrate" type="number" inputmode="decimal" step="0.1" style="width:100px"></label>
+      <label data-k="zkt">総合 得点率 %
+        <input class="sel" id="lgTrate" type="number" inputmode="decimal" step="0.1" style="width:90px"></label>
+      <label data-k="zkt">総合 全国平均 %
+        <input class="sel" id="lgTmean" type="number" inputmode="decimal" step="0.1" style="width:90px"></label>
+      <label data-k="zkt">総合 偏差値
+        <input class="sel" id="lgTdev" type="number" inputmode="decimal" step="0.1" style="width:90px"></label>
       <label>名前
-        <input class="sel" id="lgName" type="text" maxlength="30" placeholder="例：第2回京大オープン" style="width:180px"></label>
+        <input class="sel" id="lgName" type="text" maxlength="30" placeholder="例：第2回全統記述" style="width:160px"></label>
       <label>日付
         <input class="sel" id="lgDate" type="date"></label>
-      <button type="button" class="btn" id="lgAdd">いまの素点を記録</button>
+      <button type="button" class="btn" id="lgAdd">記録</button>
     </div>
-    <p class="hint" id="lgMsg" style="margin:8px 0 0"></p>
+    <p class="hint" id="lgHow" style="margin:8px 0 0"></p>
+    <p class="hint" id="lgMsg" style="margin:4px 0 0"></p>
     <dl class="bignums" id="lgNums"></dl>
+    <div class="lvwrap" style="margin-top:14px">
+      <table class="lv lgf">
+        <thead><tr><th>側面</th><th>回数</th><th>平均（偏差値差）</th><th>総合への重み</th><th>総合への寄与</th></tr></thead>
+        <tbody id="lgFacet"></tbody>
+      </table>
+    </div>
     <div class="plot" style="margin-top:14px">
       <svg class="chart" id="lgChart" viewBox="0 0 900 260" role="img"
         aria-label="記録した各回の、合格ラインからの差の推移。"></svg>
     </div>
     <div class="lvwrap" style="margin-top:10px">
       <table class="lv lg">
-        <thead><tr><th>日付</th><th>種類・名前</th><th>総合点</th><th>合格ライン</th><th>差</th><th>差（得点率）</th><th></th></tr></thead>
+        <thead><tr><th>日付</th><th>種類・名前</th><th>側面</th><th>自分</th><th>ボーダー</th><th>差</th><th>偏差値差</th><th></th></tr></thead>
         <tbody id="lgBody"></tbody>
       </table>
     </div>
@@ -493,9 +516,11 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
 
     <p><strong>本試基準で使うときの入力。</strong>過去問を解いたら、その年度を選んで比べる。共通テストは本番の素点（または共テ形式模試の素点）、二次は京大の採点基準に近い形で自己採点した素点を、各科目の満点に対する割合が同じになるように入れる。自己採点は甘くなりやすいので、部分点を辛めに付けたほうが本番の開示得点に近い。最低点は年度で大きく動く（例：情報学科は2025年度707.52→2026年度645.49で−62点）ので、<strong>2年とも最低点を超えて初めて安定圏</strong>と読むこと。</p>
 
-    <p><strong>複数回の成績から出す合格確率。</strong>1回の模試や過去問の結果は、その回の出来・問題との相性で数十点ぶれる。そこで解いた回ごとに<strong>合格ラインからの差 d（総合点）</strong>を取り、回をまたいで同じ物差しに揃える。合格ラインは、過去問ならその年度の本試合格最低点（実際の合否の境目）、京大オープンならC基準。C基準は河合塾の定義で合格可能性50%のボーダーラインなので、「本番ならちょうど合否の境目」に当たる点として最低点と同じ役割を持つ。n回分の d の平均 m と標本標準偏差 s から、次の1回の差を <code>m + s·√(1+1/n)·t(n−1)</code>（t は自由度 n−1 の t 分布）で予測し、<code>P(d ≥ 0)</code> を「次の1回が合格ラインを超える確率」として表示する。√(1+1/n) と t 分布は、回数が少ないうちは平均そのものも不確かだということを織り込む項で、回数が少ないほど確率は50%側に引き寄せられ、予測区間は広がる。3回未満では確率を出さない。推移は日付に対する最小二乗の傾き（30日あたり）。</p>
+    <p><strong>複数の模試・過去問からの総合判定。</strong>河合塾のボーダーは模試の種類を問わず「合格可能性50%」の線と定義されている（Kei-Net）。そこで各回を <code>z =（自分 − ボーダー）÷ その試験の標準偏差</code> にそろえ、表示は偏差値の差（z×10）にしている。全統記述は <code>(評価偏差値 − ボーダー偏差値)/10</code>。全統共テは得点率の差を標準偏差で割るが、標準偏差は成績表の総合 得点率 x・全国平均 μ・偏差値 T から <code>σ = 10(x−μ)/(T−50)</code> で逆算する。京大オープン・過去問・京大型模試は総合点の差を、京大オープン「志望別得点順位表」第1志望・総合の実測分布の標準偏差（情報学科で106.9点、420人）で割る。過去問のボーダーはその年度の合格最低点。本試の合格者の分布は公表されていないので、標準偏差は京大オープンの値で代用している。</p>
 
-    <p>この確率は「これまでと同じ実力・同じばらつきのまま本番を受けたら」の値で、各回が独立だと仮定している。同じ年度の過去問を2回解くと2回目は問題を覚えているので独立にならない。<strong>記録するのは初見で解いた回だけ</strong>にすること。記録はこのブラウザにだけ保存されるので、ときどきJSONで書き出しておく。</p>
+    <p>側面（共テ側・二次側・総合）ごとに平均を取り、共テ側と二次側は第一志望の<strong>配点比率</strong>で重み付けして総合に直す（工学部なら共テ225：二次800＝22%：78%）。総合を直接測った回（京大オープン・過去問）があれば、その平均と逆分散で合わせる。1回ごとのぶれ s は側面内の残差からプールし、次の1回を <code>Z + ε</code>（ε の分散 s²）とみなして <code>P = T_df( Z / √(s² + Var Z) )</code>、自由度 df＝記録回数 − 側面数で確率と80%予測区間を出す。df が2未満では確率を出さない。側面ごとに平均を引いてからぶれを測るので、「共テは強いが二次は弱い」といった実力の偏りは、ぶれとして数えられない。偏りは側面別の表に出る。</p>
+
+    <p>この確率は「これまでと同じ実力・同じぶれのまま本番を受けたら」の値で、各回が独立だと仮定している。全統模試のボーダーと志望校欄の値は第一志望の学科のものなので、第一志望を変えると、その記録は対象外になる。同じ年度の過去問を2回解くと2回目は問題を覚えているので独立にならない。<strong>記録するのは初見で解いた回だけ</strong>にすること。記録はこのブラウザにだけ保存されるので、ときどきJSONで書き出しておく。</p>
 
     <p><strong>合格可能性のパーセンテージ（推定である部分）。</strong>個人成績表と合格学力評価基準の凡例には「合格圏到達」「要努力圏」などの文言しかなく、<strong>パーセンテージはどこにも書かれていない</strong>。ここで表示している%は、河合塾が全統模試について公表している対応（A＝80%・B＝65%・C＝50%・D＝35%）をこの模試の基準点に当てはめた推定値であり、京大入試オープンについて河合塾が明示したものではない。曲線は A・B・C の3点をロジット変換して内挿し、その外側は端点の傾きで外挿している。<strong>とくにC基準点より下は全て外挿で、裏づけとなる公表値がない。</strong></p>
 
@@ -924,13 +949,17 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
         "最低点は年度で数十点動くので、片方の年度だけ超えている状態はまだ安全ではない。";
   }
 
-  // ---- 複数回の成績ログ -----------------------------------------------------
-  // 各回を「合格ラインからの差（総合点）」に揃える。合格ラインは
-  //   過去問 … その年度の本試合格最低点（実際の合否の境目）
-  //   京大オープン … C基準（河合の定義で合格可能性50%＝ボーダー）
-  //   その他の模試 … 本人が成績表から入れたC基準（記録時の第一志望学科のみ）
-  // 次の1回の差 d_new を、記録n回の平均 m・標本標準偏差 s から
-  // t 分布の予測区間 d_new ~ m + s·√(1+1/n)·t(n−1) で見積もり、P(d_new ≥ 0) を出す。
+  // ---- 複数の模試・過去問からの総合判定 -------------------------------------
+  // 各回を z =（自分 − ボーダー）÷（その試験の標準偏差）にそろえる。ボーダーは
+  // どの試験でも「合格可能性50%」の線（河合の定義）か、本試なら合格最低点。
+  //   全統記述（二次側）  z = (評価偏差値 − ボーダー偏差値) / 10
+  //   全統共テ（共テ側）  z = (換算得点率 − ボーダー得点率) / σ、
+  //                       σ は成績表の総合 得点率・全国平均・偏差値から σ = 10(x−μ)/(T−50)
+  //   京大オープン・過去問・京大型（総合） z = (総合点 − 線) / σ、
+  //                       σ は京大オープン「志望別得点順位表」第1志望・総合の実測分布の標準偏差
+  // 側面ごとの平均 μ を出し、共テ側と二次側は配点比率で Zparts = w共テ·μ共テ + w二次·μ二次。
+  // 総合側の μ と逆分散で合わせて Z。各回のばらつき s² は側面内の残差からプールする。
+  // 次の1回は Z + ε（ε〜s²）とみなし、P = T_df( Z / √(s² + Var Z) )、df = n − 側面数。
   var LOGSTORE="kyodai-rikei-log-v1", LOG=[];
   function logLoad(){ try{ var r=JSON.parse(localStorage.getItem(LOGSTORE)||"[]"); if(Array.isArray(r)) LOG=r; }catch(e){} }
   function logSave(){ try{ localStorage.setItem(LOGSTORE, JSON.stringify(LOG)); }catch(e){} }
@@ -941,15 +970,46 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
     kt=sk; nj=sn; opts.sci1st=keep;
     return v;
   }
-  function logLine(e, d){
-    if(e.kind==="kako"){ var h=honshi(d, e.year); return h ? h[0] : NaN; }
-    if(e.kind==="open") return d.C;
-    return e.dep===d.dep ? e.line : NaN;
+  var _sdCache={};
+  function openSD(d){
+    if(_sdCache[d.dep]!==undefined) return _sdCache[d.dep];
+    var tb=rankTable(d.dep,"総合","第1志望"), sd=NaN;
+    if(tb){
+      var r=tb.rows, n=0, s1=0, s2=0;
+      for(var i=0;i<r.length;i++){
+        var c=(i+1<r.length ? r[i+1][1] : tb.n+1) - r[i][1];
+        n+=c; s1+=c*r[i][0]; s2+=c*r[i][0]*r[i][0];
+      }
+      if(n>1) sd=Math.sqrt((s2-s1*s1/n)/(n-1));
+    }
+    return (_sdCache[d.dep]=sd);
+  }
+  var FACET={kt:"共テ側", nj:"二次側", all:"総合"};
+  var FCOL={kt:"--f2", nj:"--f1", all:"--f3"};
+  function entryOf(e, d){
+    var o={e:e, facet: e.kind==="zkt"?"kt" : e.kind==="zkj"?"nj" : "all", z:NaN};
+    if(e.kind==="zkj"){
+      o.me=e.dev.toFixed(1); o.line=e.bdev.toFixed(1); o.diff=sgn(e.dev-e.bdev,1);
+      if(e.dep===d.dep) o.z=(e.dev-e.bdev)/10;
+      return o;
+    }
+    if(e.kind==="zkt"){
+      var sig=10*(e.trate-e.tmean)/(e.tdev-50);
+      o.me=e.rate.toFixed(1)+"%"; o.line=e.brate.toFixed(1)+"%"; o.diff=sgn(e.rate-e.brate,1)+"%";
+      if(e.dep===d.dep && sig>0) o.z=(e.rate-e.brate)/sig;
+      return o;
+    }
+    var sc=scoreWith(e, d.facKey), ln;
+    if(e.kind==="kako"){ var h=honshi(d, e.year); ln=h?h[0]:NaN; }
+    else if(e.kind==="open") ln=d.C;
+    else ln = e.dep===d.dep ? e.line : NaN;
+    o.me=sc.toFixed(1); o.line=isFinite(ln)?ln.toFixed(1):"—"; o.diff=isFinite(ln)?sgn(sc-ln,1):"—";
+    o.z=(sc-ln)/openSD(d);
+    return o;
   }
   function kindName(e){
-    return e.kind==="kako" ? e.year+" 過去問" : e.kind==="open" ? "京大オープン" : "模試";
+    return {zkt:"全統共テ", zkj:"全統記述", open:"京大オープン", kako:(e.year||"")+" 過去問", other:"京大型模試"}[e.kind]||e.kind;
   }
-  // 正則化不完全ベータ関数（連分数展開）で t 分布の累積分布関数を出す。
   function lgamma(x){
     var c=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,
            0.1208650973866179e-2,-0.5395239384953e-5], y=x, t=x+5.5, ser=1.000000000190015;
@@ -986,61 +1046,87 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
     return (lo+hi)/2;
   }
   function logStats(d){
-    var pts=LOG.map(function(e){
-      var sc=scoreWith(e, d.facKey), ln=logLine(e, d);
-      return {e:e, score:sc, line:ln, m:sc-ln};
+    var pts=LOG.map(function(e){ return entryOf(e,d); });
+    var ok=pts.filter(function(p){ return isFinite(p.z); });
+    var st={pts:pts, ok:ok, n:ok.length, f:{}};
+    var f=FAC[d.facKey];
+    var wkt=f.kt.reduce(function(a,b){return a+b;},0)/d.tot, wnj=1-wkt;
+    st.w={kt:wkt, nj:wnj, all:1};
+    ["kt","nj","all"].forEach(function(k){
+      var zs=ok.filter(function(p){ return p.facet===k; }).map(function(p){ return p.z; });
+      if(zs.length) st.f[k]={n:zs.length, mu:zs.reduce(function(a,b){return a+b;},0)/zs.length};
     });
-    var ok=pts.filter(function(p){ return isFinite(p.m); });
-    var n=ok.length, st={pts:pts, ok:ok, n:n};
-    if(n===0) return st;
-    var mean=ok.reduce(function(a,p){ return a+p.m; },0)/n;
-    st.mean=mean;
-    if(n>=2){
-      var ss=ok.reduce(function(a,p){ return a+(p.m-mean)*(p.m-mean); },0);
-      st.sd=Math.sqrt(ss/(n-1));
-      var sc=st.sd*Math.sqrt(1+1/n);
-      st.p = sc>0 ? tcdf(mean/sc, n-1) : (mean>=0?1:0);
-      var q=tinv(0.9, n-1);
-      st.lo=mean-q*sc; st.hi=mean+q*sc;
-      st.passN=ok.filter(function(p){ return p.m>=0; }).length;
-      // 推移：日付に対する最小二乗の傾き（30日あたり）
+    var F=Object.keys(st.f).length;
+    st.df=st.n-F;
+    if(st.n===0) return st;
+    var ss=0, res=[];
+    ok.forEach(function(p){ var r=p.z-st.f[p.facet].mu; ss+=r*r; res.push(r); });
+    st.s = st.df>=1 ? Math.sqrt(ss/st.df) : NaN;
+    // 総合への推定（分散は s² の係数として持つ）
+    var est=[];
+    if(st.f.all) est.push({z:st.f.all.mu, v:1/st.f.all.n, src:"総合"});
+    if(st.f.kt && st.f.nj) est.push({z:wkt*st.f.kt.mu+wnj*st.f.nj.mu,
+      v:wkt*wkt/st.f.kt.n+wnj*wnj/st.f.nj.n, src:"共テ側＋二次側"});
+    if(!est.length){ st.partial = st.f.kt ? "kt" : "nj"; return st; }
+    var iw=0, zw=0; est.forEach(function(x){ iw+=1/x.v; zw+=x.z/x.v; });
+    st.Z=zw/iw; st.vZ=1/iw; st.src=est.map(function(x){ return x.src; }).join("・");
+    if(st.df>=2){
+      var sc=st.s*Math.sqrt(1+st.vZ);
+      st.p = sc>0 ? tcdf(st.Z/sc, st.df) : (st.Z>=0?1:0);
+      var q=tinv(0.9, st.df); st.lo=st.Z-q*sc; st.hi=st.Z+q*sc;
       var xs=ok.map(function(p){ return Date.parse(p.e.date)/864e5; });
-      var xm=xs.reduce(function(a,b){return a+b;},0)/n, sxx=0, sxy=0;
-      xs.forEach(function(x,i){ sxx+=(x-xm)*(x-xm); sxy+=(x-xm)*(ok[i].m-mean); });
+      var xm=xs.reduce(function(a,b){return a+b;},0)/st.n, sxx=0, sxy=0;
+      xs.forEach(function(x,i){ sxx+=(x-xm)*(x-xm); sxy+=(x-xm)*res[i]; });
       st.slope = sxx>0 ? sxy/sxx*30 : NaN;
     }
     return st;
   }
+  var HOW={
+    zkt:"全統共テの成績表から：志望校欄の京大（第一志望学科）の換算得点率とボーダー得点率、総合（5教科など）の得点率・全国平均・偏差値。最後の3つは標準偏差を逆算するのに使う。",
+    zkj:"全統記述の成績表から：志望校欄の京大（第一志望学科）の評価偏差値とボーダー偏差値。",
+    open:"上の素点欄に京大オープンの素点を入れてから記録。ボーダーはC基準。",
+    kako:"上の素点欄に過去問の得点（共テは本番素点、二次は辛めの自己採点）を入れ、解いた年度を選んで記録。ボーダーはその年度の合格最低点。初見の回だけ記録する。",
+    other:"京大実戦など。上の素点欄に素点を入れ、成績表に載っている第一志望のC基準（総合点）を入れて記録。"
+  };
+  function z10(z){ return sgn(z*10,1); }
   function drawLog(){
     var d=focusDep(), st=logStats(d);
     var kind=document.getElementById("lgKind").value;
-    document.getElementById("lgYearWrap").hidden = kind!=="kako";
-    document.getElementById("lgLineWrap").hidden = kind!=="other";
+    Array.prototype.forEach.call(document.querySelectorAll(".lgform [data-k]"),function(l){
+      l.hidden = l.dataset.k!==kind; });
+    document.getElementById("lgHow").textContent=HOW[kind];
+    document.getElementById("lgAdd").textContent = (kind==="zkt"||kind==="zkj") ? "記録" : "いまの素点を記録";
 
     var big=function(t,v,u){ return "<div class='bn'><dt>"+t+"</dt><dd>"+v+(u?"<small>"+u+"</small>":"")+"</dd></div>"; };
-    var pTxt, need="";
-    if(st.n<3){
-      pTxt="—"; need="あと"+(3-st.n)+"回記録すると確率を出す";
-    } else pTxt=(st.p*100).toFixed(0);
+    var has=st.Z!==undefined, hasP=st.p!==undefined;
     document.getElementById("lgNums").innerHTML =
       big("記録（"+d.dep+"で使える回）", st.n, " 回")+
-      big("平均の差", st.n?sgn(st.mean,1):"—", " 点")+
-      big("ばらつき（標準偏差）", st.n>=2?st.sd.toFixed(1):"—", " 点")+
-      big("推移（30日あたり）", st.n>=2&&isFinite(st.slope)?sgn(st.slope,1):"—", " 点")+
-      big("次の1回が合格ラインを超える確率", pTxt, st.n>=3?" %":"")+
-      big("次の1回の差（80%予測区間）", st.n>=3?sgn(st.lo,0)+" 〜 "+sgn(st.hi,0):"—", st.n>=3?" 点":"");
+      big("総合のボーダー差（偏差値）", has?z10(st.Z):"—", "")+
+      big("1回ごとのぶれ（偏差値）", isFinite(st.s)?"±"+(st.s*10).toFixed(1):"—", "")+
+      big("推移（30日あたり・偏差値）", hasP&&isFinite(st.slope)?z10(st.slope):"—", "")+
+      big("次の1回がボーダーを超える確率", hasP?(st.p*100).toFixed(0):"—", hasP?" %":"")+
+      big("次の1回（80%予測区間）", hasP?z10(st.lo)+" 〜 "+z10(st.hi):"—", "");
+
+    document.getElementById("lgFacet").innerHTML=["kt","nj","all"].map(function(k){
+      var x=st.f[k];
+      return "<tr><td><i style='display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:"+col(FCOL[k])+"'></i>"+FACET[k]+"</td>"+
+        "<td>"+(x?x.n:0)+"</td><td"+(x?" class='"+(x.mu>=0?"pos":"neg")+"'":" class='no'")+">"+(x?z10(x.mu):"—")+"</td>"+
+        "<td>"+(k==="all"?"直接":(st.w[k]*100).toFixed(0)+"%")+"</td>"+
+        "<td>"+(x&&k!=="all"?z10(st.w[k]*x.mu):"—")+"</td></tr>";
+    }).join("");
 
     var body=document.getElementById("lgBody");
     var rows=st.pts.map(function(p,i){ return {p:p,i:i}; })
       .sort(function(a,b){ return (a.p.e.date||"").localeCompare(b.p.e.date||""); });
     body.innerHTML = rows.length ? rows.map(function(r){
-      var p=r.p, has=isFinite(p.m);
-      return "<tr><td>"+(p.e.date||"—")+"</td><td>"+kindName(p.e)+(p.e.name?"・"+esc(p.e.name):"")+"</td>"+
-        "<td>"+p.score.toFixed(1)+"</td><td>"+(has?p.line.toFixed(1):"対象外")+"</td>"+
-        (has?"<td class='"+(p.m>=0?"pos":"neg")+"'>"+sgn(p.m,1)+"</td><td>"+sgn(p.m/d.tot*100,1)+"%</td>"
-            :"<td class='no'>—</td><td class='no'>—</td>")+
+      var p=r.p, ok=isFinite(p.z);
+      return "<tr><td>"+(p.e.date||"—")+"</td><td>"+kindName(p.e)+(p.e.name?"・"+esc(p.e.name):"")+
+        (p.e.dep&&p.e.dep!==d.dep?"<em style='font-style:normal;color:var(--muted)'>（"+esc(p.e.dep)+"）</em>":"")+"</td>"+
+        "<td>"+FACET[p.facet]+"</td><td>"+p.me+"</td><td>"+(ok?p.line:"対象外")+"</td>"+
+        (ok?"<td>"+p.diff+"</td><td class='"+(p.z>=0?"pos":"neg")+"'>"+z10(p.z)+"</td>"
+           :"<td class='no'>—</td><td class='no'>—</td>")+
         "<td><button type='button' class='xbtn' data-i='"+r.i+"' aria-label='この記録を消す'>✕</button></td></tr>";
-    }).join("") : "<tr><td colspan='7' class='no' style='text-align:left'>まだ記録がない。</td></tr>";
+    }).join("") : "<tr><td colspan='8' class='no' style='text-align:left'>まだ記録がない。</td></tr>";
     Array.prototype.forEach.call(body.querySelectorAll(".xbtn"),function(b){
       b.addEventListener("click",function(){
         if(!confirm("この記録を消す？")) return;
@@ -1048,44 +1134,54 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
       });
     });
 
-    document.getElementById("lgNote").innerHTML = st.n<3
-      ? need+"。過去問は年度ごとに合格最低点が違うので、必ず解いた年度を選んで記録する。"
-      : "読み方：確率は「これまでのn回と同じ実力・同じばらつきのまま本番を受けたら」の値で、自由度 n−1 の t 分布で回数の少なさも織り込んでいる。"+
-        "平均の差が正でもばらつきが大きいと確率は伸びない。合格ラインを超えた回は "+st.passN+" / "+st.n+" 回。"+
-        "第一志望を切り替えると、同じ記録をその学科の配点と合格ラインで計算し直す。";
+    var note;
+    if(st.n===0) note="記録すると、側面ごとの平均と総合判定が出る。";
+    else if(st.partial) note=FACET[st.partial]+"だけでは総合は出せない。"+(st.partial==="kt"?"全統記述か京大型の模試・過去問":"全統共テか京大型の模試・過去問")+"を足す。";
+    else if(!hasP) note="総合のボーダー差は出た（"+st.src+"から）。確率は 記録回数 − 側面数 ≥ 2 になると出す（あと"+(2-st.df)+"回）。";
+    else {
+      note="総合は「"+st.src+"」から推定。確率は、これまでと同じ実力・同じぶれのまま本番を受けたらの値で、自由度 "+st.df+" の t 分布で回数の少なさも織り込んでいる。";
+      if(st.f.kt && st.f.nj){
+        var weak = st.f.kt.mu < st.f.nj.mu ? "kt" : "nj";
+        note+=" 側面別では"+FACET[weak]+"が弱い（"+z10(st.f[weak].mu)+"）。";
+      }
+    }
+    if(st.f.kt && st.f.kt.mu<0) note+=" 共テ側がボーダー未満なので、第1段階選抜（"+FAC[d.facKey].ratio+"）の位置も上のカードで確認すること。";
+    document.getElementById("lgNote").textContent=note;
 
-    // 推移チャート
+    // 推移チャート（偏差値差）
     var svg=document.getElementById("lgChart"); svg.textContent="";
     var W=900,H=260,L=58,R=20,T=14,B=34, pw=W-L-R, ph=H-T-B;
     var ok=st.ok.slice().sort(function(a,b){ return (a.e.date||"").localeCompare(b.e.date||""); });
     if(!ok.length){
-      svg.appendChild(txt(W/2,H/2,"記録すると、ここに合格ラインからの差の推移が出る",{"text-anchor":"middle",fill:col("--muted"),"font-size":13,"font-family":sansF}));
+      svg.appendChild(txt(W/2,H/2,"記録すると、ここにボーダーとの偏差値差の推移が出る",{"text-anchor":"middle",fill:col("--muted"),"font-size":13,"font-family":sansF}));
       return;
     }
-    var ms=ok.map(function(p){ return p.m; }).concat([0]);
-    if(st.n>=3){ ms.push(st.lo, st.hi); }
-    var ymin=Math.min.apply(null,ms), ymax=Math.max.apply(null,ms), pad=Math.max(10,(ymax-ymin)*0.12);
+    var ms=ok.map(function(p){ return p.z*10; }).concat([0]);
+    if(hasP){ ms.push(st.lo*10, st.hi*10); } else if(has) ms.push(st.Z*10);
+    var ymin=Math.min.apply(null,ms), ymax=Math.max.apply(null,ms), pad=Math.max(1.5,(ymax-ymin)*0.12);
     ymin-=pad; ymax+=pad;
     var Y=function(v){ return T+(ymax-v)/(ymax-ymin)*ph; };
     var X=function(i){ return ok.length===1 ? L+pw/2 : L+i/(ok.length-1)*pw; };
-    var step=Math.pow(10,Math.floor(Math.log10((ymax-ymin)/4))); if((ymax-ymin)/step>8) step*=2; if((ymax-ymin)/step>8) step*=2.5;
+    var step=[1,2,2.5,5,10,20].filter(function(x){ return (ymax-ymin)/x<=8; })[0]||20;
     for(var v=Math.ceil(ymin/step)*step; v<=ymax; v+=step){
       svg.appendChild(el("line",{x1:L,x2:W-R,y1:Y(v),y2:Y(v),stroke:col("--grid")}));
-      svg.appendChild(txt(L-8,Y(v)+4,(v>0?"+":"")+Math.round(v),{"text-anchor":"end",fill:col("--muted"),"font-size":11,"font-family":monoF}));
+      svg.appendChild(txt(L-8,Y(v)+4,(v>0?"+":"")+(+v.toFixed(1)),{"text-anchor":"end",fill:col("--muted"),"font-size":11,"font-family":monoF}));
     }
-    if(st.n>=3){
-      svg.appendChild(el("rect",{x:L,width:pw,y:Y(st.hi),height:Math.max(0,Y(st.lo)-Y(st.hi)),fill:col(d.v),opacity:.1}));
-      svg.appendChild(el("line",{x1:L,x2:W-R,y1:Y(st.mean),y2:Y(st.mean),stroke:col(d.v),"stroke-dasharray":"5 4","stroke-width":1.5}));
-      svg.appendChild(txt(W-R-4,Y(st.mean)-6,"平均 "+sgn(st.mean,1),{"text-anchor":"end",fill:col(d.v),"font-size":11.5,"font-family":sansF}));
+    if(hasP) svg.appendChild(el("rect",{x:L,width:pw,y:Y(st.hi*10),height:Math.max(0,Y(st.lo*10)-Y(st.hi*10)),fill:col(d.v),opacity:.1}));
+    if(has){
+      svg.appendChild(el("line",{x1:L,x2:W-R,y1:Y(st.Z*10),y2:Y(st.Z*10),stroke:col(d.v),"stroke-dasharray":"5 4","stroke-width":1.5}));
+      svg.appendChild(txt(W-R-4,Y(st.Z*10)-6,"総合 "+z10(st.Z),{"text-anchor":"end",fill:col(d.v),"font-size":11.5,"font-family":sansF}));
     }
     svg.appendChild(el("line",{x1:L,x2:W-R,y1:Y(0),y2:Y(0),stroke:col("--ink"),"stroke-width":1.5}));
-    svg.appendChild(txt(L+4,Y(0)-6,"合格ライン",{fill:col("--ink"),"font-size":11.5,"font-family":sansF}));
-    if(ok.length>1){
-      svg.appendChild(el("polyline",{points:ok.map(function(p,i){ return X(i)+","+Y(p.m); }).join(" "),
-        fill:"none",stroke:col("--axis"),"stroke-width":1.5}));
-    }
+    svg.appendChild(txt(L+4,Y(0)-6,"ボーダー",{fill:col("--ink"),"font-size":11.5,"font-family":sansF}));
+    var lx=L+90;
+    ["kt","nj","all"].forEach(function(k){
+      svg.appendChild(el("circle",{cx:lx,cy:T+8,r:5,fill:col(FCOL[k])}));
+      svg.appendChild(txt(lx+9,T+12,FACET[k],{fill:col("--ink-2"),"font-size":11.5,"font-family":sansF}));
+      lx+=80;
+    });
     ok.forEach(function(p,i){
-      svg.appendChild(el("circle",{cx:X(i),cy:Y(p.m),r:5.5,fill:col(p.m>=0?"--gA":"--gE"),stroke:col("--surface"),"stroke-width":2}));
+      svg.appendChild(el("circle",{cx:X(i),cy:Y(p.z*10),r:6,fill:col(FCOL[p.facet]),stroke:col("--surface"),"stroke-width":2}));
       var lab=(p.e.date||"").slice(5).replace("-","/");
       svg.appendChild(txt(X(i),H-B+18,lab,{"text-anchor":"middle",fill:col("--muted"),"font-size":11,"font-family":monoF}));
     });
@@ -1099,19 +1195,32 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
     document.getElementById("lgKind").addEventListener("change", drawLog);
     document.getElementById("lgAdd").addEventListener("click",function(){
       var msg=document.getElementById("lgMsg");
-      if(inputTotal()===0){ msg.textContent="素点が空。上の欄に入れてから記録する。"; return; }
       var kind=document.getElementById("lgKind").value;
-      var e={kind:kind, date:dt.value||"", name:document.getElementById("lgName").value.trim(),
-             kt:JSON.parse(JSON.stringify(kt)), nj:JSON.parse(JSON.stringify(nj)), sci1st:opts.sci1st};
-      if(kind==="kako") e.year=ysel.value;
-      if(kind==="other"){
-        var ln=parseFloat(document.getElementById("lgLine").value);
-        if(!(ln>0)){ msg.textContent="成績表のC基準（総合点）を入れる。"; return; }
-        e.line=ln; e.dep=focusDep().dep;
-      }
+      var num=function(id){ return parseFloat(document.getElementById(id).value); };
+      var e={kind:kind, date:dt.value||"", name:document.getElementById("lgName").value.trim()};
       if(!e.date){ msg.textContent="日付を入れる。"; return; }
+      if(kind==="zkj"){
+        e.dev=num("lgDev"); e.bdev=num("lgBdev");
+        if(!(e.dev>0&&e.bdev>0)){ msg.textContent="評価偏差値とボーダー偏差値を入れる。"; return; }
+        e.dep=focusDep().dep;
+      } else if(kind==="zkt"){
+        e.rate=num("lgRate"); e.brate=num("lgBrate"); e.trate=num("lgTrate"); e.tmean=num("lgTmean"); e.tdev=num("lgTdev");
+        if(![e.rate,e.brate,e.trate,e.tmean,e.tdev].every(function(x){ return x>0; })){ msg.textContent="5つとも入れる。"; return; }
+        if(Math.abs(e.tdev-50)<3 || (e.trate-e.tmean)*(e.tdev-50)<=0){
+          msg.textContent="総合の得点率・平均・偏差値から標準偏差を逆算できない（偏差値が50に近すぎるか、値の向きが合わない）。"; return; }
+        e.dep=focusDep().dep;
+      } else {
+        if(inputTotal()===0){ msg.textContent="素点が空。上の欄に入れてから記録する。"; return; }
+        e.kt=JSON.parse(JSON.stringify(kt)); e.nj=JSON.parse(JSON.stringify(nj)); e.sci1st=opts.sci1st;
+        if(kind==="kako") e.year=ysel.value;
+        if(kind==="other"){
+          var ln=num("lgLine");
+          if(!(ln>0)){ msg.textContent="成績表のC基準（総合点）を入れる。"; return; }
+          e.line=ln; e.dep=focusDep().dep;
+        }
+      }
       LOG.push(e); logSave();
-      msg.textContent="記録した（"+e.date+"・"+kindName(e)+"）。続けて次の回の素点を入れて記録できる。";
+      msg.textContent="記録した（"+e.date+"・"+kindName(e)+"）。";
       drawLog();
     });
     document.getElementById("lgExport").addEventListener("click",function(){
@@ -1124,7 +1233,7 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
       f.text().then(function(t){
         var r=JSON.parse(t);
         if(!Array.isArray(r)) throw 0;
-        var good=r.filter(function(e){ return e && e.kt && e.nj && ["kako","open","other"].indexOf(e.kind)>=0; });
+        var good=r.filter(function(e){ return e && (e.kind==="zkt"||e.kind==="zkj" ? !!e.dep : (e.kt && e.nj && ["kako","open","other"].indexOf(e.kind)>=0)); });
         LOG=LOG.concat(good); logSave(); drawLog();
         document.getElementById("lgMsg").textContent=good.length+"件 読み込んだ。";
       }).catch(function(){ document.getElementById("lgMsg").textContent="読み込めないファイル。"; });
