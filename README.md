@@ -91,7 +91,8 @@ CI は緑のまま。設定を入れれば次の push からそのまま公開�
 
 ## リリース
 
-`v` で始まるタグを push すると `.github/workflows/release.yml` が GitHub Release を作り、
+`v` で始まるタグを push するか、Actions の「Release」を手動実行（タグ名を入力）すると、
+`.github/workflows/release.yml` が GitHub Release を作り、
 そのコミットの `index.html` を `kyodai-simulator-<タグ>.html` として添付する。
 リリースノートは `.github/release-notes/<タグ>.md` に置く（なければ自動生成）。
 
