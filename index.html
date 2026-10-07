@@ -374,16 +374,13 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
         <input class="sel" id="lgDev" type="number" inputmode="decimal" step="0.1" style="width:100px"></label>
       <label data-k="zkj">ボーダー偏差値
         <input class="sel" id="lgBdev" type="number" inputmode="decimal" step="0.1" style="width:100px"></label>
-      <label data-k="zkt">京大の換算得点率 %
-        <input class="sel" id="lgRate" type="number" inputmode="decimal" step="0.1" style="width:100px"></label>
-      <label data-k="zkt">ボーダー得点率 %
-        <input class="sel" id="lgBrate" type="number" inputmode="decimal" step="0.1" style="width:100px"></label>
-      <label data-k="zkt">総合 得点率 %
-        <input class="sel" id="lgTrate" type="number" inputmode="decimal" step="0.1" style="width:90px"></label>
-      <label data-k="zkt">総合 全国平均 %
-        <input class="sel" id="lgTmean" type="number" inputmode="decimal" step="0.1" style="width:90px"></label>
-      <label data-k="zkt">総合 偏差値
-        <input class="sel" id="lgTdev" type="number" inputmode="decimal" step="0.1" style="width:90px"></label>
+      <label data-k="zkt">回
+        <select class="sel" id="lgKtMock">
+          <option value="1">第1回（統計あり）</option>
+          <option value="x">それ以外（C基準を入力）</option>
+        </select></label>
+      <label data-k="zktx">C基準（京大の換算得点）
+        <input class="sel" id="lgKtC" type="number" inputmode="decimal" step="1" style="width:100px"></label>
       <label>名前
         <input class="sel" id="lgName" type="text" maxlength="30" placeholder="例：第2回全統記述" style="width:160px"></label>
       <label>日付
@@ -516,7 +513,7 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
 
     <p><strong>本試基準で使うときの入力。</strong>過去問を解いたら、その年度を選んで比べる。共通テストは本番の素点（または共テ形式模試の素点）、二次は京大の採点基準に近い形で自己採点した素点を、各科目の満点に対する割合が同じになるように入れる。自己採点は甘くなりやすいので、部分点を辛めに付けたほうが本番の開示得点に近い。最低点は年度で大きく動く（例：情報学科は2025年度707.52→2026年度645.49で−62点）ので、<strong>2年とも最低点を超えて初めて安定圏</strong>と読むこと。</p>
 
-    <p><strong>複数の模試・過去問からの総合判定。</strong>河合塾のボーダーは模試の種類を問わず「合格可能性50%」の線と定義されている（Kei-Net）。そこで各回を <code>z =（自分 − ボーダー）÷ その試験の標準偏差</code> にそろえ、表示は偏差値の差（z×10）にしている。全統記述は <code>(評価偏差値 − ボーダー偏差値)/10</code>。全統共テは得点率の差を標準偏差で割るが、標準偏差は成績表の総合 得点率 x・全国平均 μ・偏差値 T から <code>σ = 10(x−μ)/(T−50)</code> で逆算する。京大オープン・過去問・京大型模試は総合点の差を、京大オープン「志望別得点順位表」第1志望・総合の実測分布の標準偏差（情報学科で106.9点、420人）で割る。過去問のボーダーはその年度の合格最低点。本試の合格者の分布は公表されていないので、標準偏差は京大オープンの値で代用している。</p>
+    <p><strong>複数の模試・過去問からの総合判定。</strong>河合塾のボーダーは模試の種類を問わず「合格可能性50%」の線と定義されている（Kei-Net）。そこで各回を <code>z =（自分 − ボーダー）÷ その試験の標準偏差</code> にそろえ、表示は偏差値の差（z×10）にしている。全統記述は <code>(評価偏差値 − ボーダー偏差値)/10</code>。全統共テは、共テの素点を京大の換算得点（学部の共テ配点）に直し、C基準との差を<strong>京大志望者の換算得点の標準偏差</strong>で割る。C基準と標準偏差は、2026年度第1回全統共通テスト模試の「合格可能性評価基準一覧」と「志望別成績分布表」（京大理系19学科、第1志望者の分布。50人未満の学科は総志望者）から取った。標準偏差は得点帯ごとの人数から計算していて（帯の中央値＋Sheppard補正）、同じ表から出した平均は公表平均と0〜3点差で一致する。情報学科なら C=189・σ=27.4（225点満点、335人）。共テ模試の判定にはボーダー（情報は191＝225×85%）ではなく、その回の50%線であるC基準を使う。第2回以降は成績表のC基準を入れ、標準偏差は第1回の値で代用する。全統記述は志望者分布の統計がまだないので、受験者全体の偏差値の差を10で割っている（表で「全体基準」と出す）。全体の分布は京大志望者より広いので、この側面だけ差が小さめに出る。京大オープン・過去問・京大型模試は総合点の差を、京大オープン「志望別得点順位表」第1志望・総合の実測分布の標準偏差（情報学科で106.9点、420人）で割る。過去問のボーダーはその年度の合格最低点。本試の合格者の分布は公表されていないので、標準偏差は京大オープンの値で代用している。</p>
 
     <p>側面（共テ側・二次側・総合）ごとに平均を取り、共テ側と二次側は第一志望の<strong>配点比率</strong>で重み付けして総合に直す（工学部なら共テ225：二次800＝22%：78%）。総合を直接測った回（京大オープン・過去問）があれば、その平均と逆分散で合わせる。1回ごとのぶれ s は側面内の残差からプールし、次の1回を <code>Z + ε</code>（ε の分散 s²）とみなして <code>P = T_df( Z / √(s² + Var Z) )</code>、自由度 df＝記録回数 − 側面数で確率と80%予測区間を出す。df が2未満では確率を出さない。側面ごとに平均を引いてからぶれを測るので、「共テは強いが二次は弱い」といった実力の偏りは、ぶれとして数えられない。偏りは側面別の表に出る。</p>
 
@@ -589,6 +586,13 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
   // 京大本試（一般選抜・前期）の合格者成績。総合点の [合格最低点, 合格者平均点]。
   // 京大公表値を河合塾 Kei-Net「合格最高点・最低点・平均点一覧」から転記。
   // 農学部は学部一括の公表なので6学科とも同じ値。配点合計は2025・2026とも現行と同じ。
+  // 2026年度 第1回全統共通テスト模試（河合塾）「合格可能性評価基準一覧」「志望別成績分布表」（国公立・近畿）。
+  // 学科 → [[A,B,C,D] 評価基準点, ボーダー, 母集団(1=第1志望,2=総志望), 人数, 平均換算得点,
+  //         標準偏差, 得点帯の下端, 人数分布]。換算得点の満点は京大の共テ配点と一致する。
+  // 標準偏差は分布表から計算（帯の中央値＋Sheppard補正）。平均は公表値と0〜3点差で一致。
+  // 第1志望が50人未満の学科は総志望の分布を使う。
+  var KT1 = {"総合理系":[[114,111,109,106],110,1,164,92.9,17.79,[34,35,40,45,50,55,60,65,70,75,80,85,90,95,100,105,110,115,120],[3,0,0,0,3,4,3,1,9,8,11,13,18,23,22,20,12,11,3]],"教育理系":[[231,226,220,215],223,2,74,180.2,39.76,[84,85,95,105,115,125,135,145,155,165,175,185,195,205,215,225,235,245,255],[3,0,2,0,3,3,5,1,6,1,7,10,8,10,10,3,2,0,0]],"経済理系":[[258,252,246,240],249,1,86,209.3,39.4,[119,120,130,140,150,160,170,180,190,200,210,220,230,240,250,260,270,280,290],[4,2,0,1,3,5,1,7,2,8,13,9,12,5,8,5,0,1,0]],"理":[[220,215,210,205],213,1,636,190.0,29.79,[69,70,80,90,100,110,120,130,140,150,160,170,180,190,200,210,220,230,240],[4,2,0,4,5,4,7,10,21,28,45,59,65,108,101,88,62,20,3]],"医":[[253,248,241,234],245,1,242,212.4,42.39,[94,95,105,115,125,135,145,155,165,175,185,195,205,215,225,235,245,255,265],[10,0,2,2,2,6,7,2,3,12,13,13,22,24,36,26,33,29,0]],"人間健康":[[220,215,209,204],212,1,60,183.3,37.57,[94,95,105,115,125,135,145,155,165,175,185,195,205,215,225,235,245,255,265],[1,2,2,0,3,4,1,2,2,5,11,10,6,2,7,2,0,0,0]],"薬":[[189,185,181,176],183,1,146,164.0,25.59,[39,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200,210],[0,0,0,0,0,0,2,5,1,9,11,9,16,20,27,29,10,5,2]],"理工化学":[[191,187,183,178],185,1,161,168.7,27.84,[44,45,55,65,75,85,95,105,115,125,135,145,155,165,175,185,195,205,215],[1,0,1,1,0,1,1,3,3,3,8,11,23,33,24,23,19,6,0]],"電気電子":[[196,191,187,182],189,1,213,169.1,23.51,[44,45,55,65,75,85,95,105,115,125,135,145,155,165,175,185,195,205,215],[0,1,0,0,2,2,0,1,1,5,14,18,34,36,44,34,19,2,0]],"情報":[[198,193,189,185],191,1,335,171.9,27.44,[44,45,55,65,75,85,95,105,115,125,135,145,155,165,175,185,195,205,215],[3,1,0,1,0,2,2,4,5,8,11,20,45,55,60,57,42,19,0]],"建築":[[196,191,187,182],189,1,218,168.1,23.54,[44,45,55,65,75,85,95,105,115,125,135,145,155,165,175,185,195,205,215],[0,0,1,0,1,1,2,3,2,11,6,19,33,43,45,32,16,3,0]],"地球工":[[194,189,185,180],187,1,172,164.6,24.02,[44,45,55,65,75,85,95,105,115,125,135,145,155,165,175,185,195,205,215],[0,0,0,1,0,1,2,2,4,7,12,19,36,30,22,19,13,4,0]],"物理工":[[196,191,187,182],189,1,443,170.1,24.84,[44,45,55,65,75,85,95,105,115,125,135,145,155,165,175,185,195,205,215],[2,0,3,1,1,0,2,2,8,11,21,34,63,80,83,79,42,11,0]],"資源生物":[[305,298,291,284],294,1,98,263.9,35.24,[169,170,180,190,200,210,220,230,240,250,260,270,280,290,300,310,320,330,340],[5,0,0,0,1,1,3,5,9,13,13,15,8,8,9,3,5,0,0]],"応用生命":[[305,298,291,284],294,1,120,265.6,35.49,[169,170,180,190,200,210,220,230,240,250,260,270,280,290,300,310,320,330,340],[4,0,2,2,1,4,5,3,9,8,18,21,9,16,9,6,3,0,0]],"地域環境":[[301,294,287,280],291,2,86,264.3,37.03,[169,170,180,190,200,210,220,230,240,250,260,270,280,290,300,310,320,330,340],[3,1,1,0,1,1,5,5,12,5,11,8,6,11,8,5,3,0,0]],"食料環境":[[301,294,287,280],291,2,91,268.0,34.88,[169,170,180,190,200,210,220,230,240,250,260,270,280,290,300,310,320,330,340],[2,0,2,1,2,1,3,7,7,4,12,8,16,12,6,6,2,0,0]],"森林科学":[[301,294,287,280],291,2,107,266.1,43.43,[169,170,180,190,200,210,220,230,240,250,260,270,280,290,300,310,320,330,340],[6,2,0,2,2,3,4,2,9,6,11,1,9,18,13,16,3,0,0]],"食品生物":[[305,298,291,284],294,1,85,258.5,36.9,[169,170,180,190,200,210,220,230,240,250,260,270,280,290,300,310,320,330,340],[5,0,0,1,3,1,2,3,10,11,11,8,7,12,8,1,2,0,0]]};
+
   var HONSHI_YEARS = ["2026","2025"];
   var HONSHI = {
     "総合理系":{"2026":[454.00,500.71], "2025":[487.75,533.88]},
@@ -989,14 +993,24 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
   function entryOf(e, d){
     var o={e:e, facet: e.kind==="zkt"?"kt" : e.kind==="zkj"?"nj" : "all", z:NaN};
     if(e.kind==="zkj"){
-      o.me=e.dev.toFixed(1); o.line=e.bdev.toFixed(1); o.diff=sgn(e.dev-e.bdev,1);
+      o.me=e.dev.toFixed(1); o.line=e.bdev.toFixed(1); o.diff=sgn(e.dev-e.bdev,1); o.legacy=true;
       if(e.dep===d.dep) o.z=(e.dev-e.bdev)/10;
       return o;
     }
-    if(e.kind==="zkt"){
+    if(e.kind==="zkt" && e.kt){
+      // 共テ素点 → 京大の換算得点（学部の共テ配点）。C基準・標準偏差は第1回の京大志望者分布。
+      var k1=KT1[d.dep], sv=kt, keep=opts.sci1st;
+      kt=e.kt; opts.sci1st=e.sci1st||1; var me=facParts(d.facKey).共テ; kt=sv; opts.sci1st=keep;
+      var C = e.mock==="1" ? (k1&&k1[0][2]) : (e.dep===d.dep ? e.c : NaN);
+      o.me=me.toFixed(1); o.line=isFinite(C)?String(C):"—"; o.diff=isFinite(C)?sgn(me-C,1):"—";
+      if(k1 && isFinite(C)) o.z=(me-C)/k1[5];
+      return o;
+    }
+    if(e.kind==="zkt"){ // 旧形式（得点率と全体の標準偏差で記録したもの）
       var sig=10*(e.trate-e.tmean)/(e.tdev-50);
       o.me=e.rate.toFixed(1)+"%"; o.line=e.brate.toFixed(1)+"%"; o.diff=sgn(e.rate-e.brate,1)+"%";
       if(e.dep===d.dep && sig>0) o.z=(e.rate-e.brate)/sig;
+      o.legacy=true;
       return o;
     }
     var sc=scoreWith(e, d.facKey), ln;
@@ -1008,6 +1022,7 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
     return o;
   }
   function kindName(e){
+    if(e.kind==="zkt" && e.mock) return e.mock==="1" ? "第1回全統共テ" : "全統共テ";
     return {zkt:"全統共テ", zkj:"全統記述", open:"京大オープン", kako:(e.year||"")+" 過去問", other:"京大型模試"}[e.kind]||e.kind;
   }
   function lgamma(x){
@@ -1082,8 +1097,8 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
     return st;
   }
   var HOW={
-    zkt:"全統共テの成績表から：志望校欄の京大（第一志望学科）の換算得点率とボーダー得点率、総合（5教科など）の得点率・全国平均・偏差値。最後の3つは標準偏差を逆算するのに使う。",
-    zkj:"全統記述の成績表から：志望校欄の京大（第一志望学科）の評価偏差値とボーダー偏差値。",
+    zkt:"上の素点欄の共通テスト側に、その回の全統共テの素点を入れて記録（二次側は使わない）。京大の換算得点に直し、第1回の京大志望者分布でボーダー差を出す。第2回以降は成績表の判定欄のC基準（換算得点）を入れる。",
+    zkj:"全統記述の成績表から：志望校欄の京大（第一志望学科）の評価偏差値とボーダー偏差値。志望者分布の統計がまだないので受験者全体の偏差値で換算している（表で「全体基準」と表示）。",
     open:"上の素点欄に京大オープンの素点を入れてから記録。ボーダーはC基準。",
     kako:"上の素点欄に過去問の得点（共テは本番素点、二次は辛めの自己採点）を入れ、解いた年度を選んで記録。ボーダーはその年度の合格最低点。初見の回だけ記録する。",
     other:"京大実戦など。上の素点欄に素点を入れ、成績表に載っている第一志望のC基準（総合点）を入れて記録。"
@@ -1093,9 +1108,9 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
     var d=focusDep(), st=logStats(d);
     var kind=document.getElementById("lgKind").value;
     Array.prototype.forEach.call(document.querySelectorAll(".lgform [data-k]"),function(l){
-      l.hidden = l.dataset.k!==kind; });
+      l.hidden = l.dataset.k==="zktx" ? !(kind==="zkt" && document.getElementById("lgKtMock").value==="x") : l.dataset.k!==kind; });
     document.getElementById("lgHow").textContent=HOW[kind];
-    document.getElementById("lgAdd").textContent = (kind==="zkt"||kind==="zkj") ? "記録" : "いまの素点を記録";
+    document.getElementById("lgAdd").textContent = kind==="zkj" ? "記録" : kind==="zkt" ? "いまの共テ素点を記録" : "いまの素点を記録";
 
     var big=function(t,v,u){ return "<div class='bn'><dt>"+t+"</dt><dd>"+v+(u?"<small>"+u+"</small>":"")+"</dd></div>"; };
     var has=st.Z!==undefined, hasP=st.p!==undefined;
@@ -1122,7 +1137,7 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
       var p=r.p, ok=isFinite(p.z);
       return "<tr><td>"+(p.e.date||"—")+"</td><td>"+kindName(p.e)+(p.e.name?"・"+esc(p.e.name):"")+
         (p.e.dep&&p.e.dep!==d.dep?"<em style='font-style:normal;color:var(--muted)'>（"+esc(p.e.dep)+"）</em>":"")+"</td>"+
-        "<td>"+FACET[p.facet]+"</td><td>"+p.me+"</td><td>"+(ok?p.line:"対象外")+"</td>"+
+        "<td>"+FACET[p.facet]+(p.legacy?"<em style='font-style:normal;color:var(--muted)'>（全体基準）</em>":"")+"</td><td>"+p.me+"</td><td>"+(ok?p.line:"対象外")+"</td>"+
         (ok?"<td>"+p.diff+"</td><td class='"+(p.z>=0?"pos":"neg")+"'>"+z10(p.z)+"</td>"
            :"<td class='no'>—</td><td class='no'>—</td>")+
         "<td><button type='button' class='xbtn' data-i='"+r.i+"' aria-label='この記録を消す'>✕</button></td></tr>";
@@ -1193,6 +1208,7 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
     var dt=document.getElementById("lgDate");
     dt.value=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
     document.getElementById("lgKind").addEventListener("change", drawLog);
+    document.getElementById("lgKtMock").addEventListener("change", drawLog);
     document.getElementById("lgAdd").addEventListener("click",function(){
       var msg=document.getElementById("lgMsg");
       var kind=document.getElementById("lgKind").value;
@@ -1204,11 +1220,15 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
         if(!(e.dev>0&&e.bdev>0)){ msg.textContent="評価偏差値とボーダー偏差値を入れる。"; return; }
         e.dep=focusDep().dep;
       } else if(kind==="zkt"){
-        e.rate=num("lgRate"); e.brate=num("lgBrate"); e.trate=num("lgTrate"); e.tmean=num("lgTmean"); e.tdev=num("lgTdev");
-        if(![e.rate,e.brate,e.trate,e.tmean,e.tdev].every(function(x){ return x>0; })){ msg.textContent="5つとも入れる。"; return; }
-        if(Math.abs(e.tdev-50)<3 || (e.trate-e.tmean)*(e.tdev-50)<=0){
-          msg.textContent="総合の得点率・平均・偏差値から標準偏差を逆算できない（偏差値が50に近すぎるか、値の向きが合わない）。"; return; }
-        e.dep=focusDep().dep;
+        var ktSum=KT_DEF.reduce(function(a,f){ return a+kt[f.k]; },0);
+        if(ktSum===0){ msg.textContent="共通テスト側の素点が空。上の欄に入れてから記録する。"; return; }
+        e.kt=JSON.parse(JSON.stringify(kt)); e.sci1st=opts.sci1st;
+        e.mock=document.getElementById("lgKtMock").value;
+        if(e.mock==="x"){
+          e.c=num("lgKtC");
+          if(!(e.c>0)){ msg.textContent="成績表のC基準（京大の換算得点）を入れる。"; return; }
+          e.dep=focusDep().dep;
+        }
       } else {
         if(inputTotal()===0){ msg.textContent="素点が空。上の欄に入れてから記録する。"; return; }
         e.kt=JSON.parse(JSON.stringify(kt)); e.nj=JSON.parse(JSON.stringify(nj)); e.sci1st=opts.sci1st;
@@ -1233,7 +1253,7 @@ footer{font-size:12px; color:var(--muted); border-top:1px solid var(--rule); pad
       f.text().then(function(t){
         var r=JSON.parse(t);
         if(!Array.isArray(r)) throw 0;
-        var good=r.filter(function(e){ return e && (e.kind==="zkt"||e.kind==="zkj" ? !!e.dep : (e.kt && e.nj && ["kako","open","other"].indexOf(e.kind)>=0)); });
+        var good=r.filter(function(e){ return e && (e.kind==="zkt" ? !!(e.kt||e.dep) : e.kind==="zkj" ? !!e.dep : (e.kt && e.nj && ["kako","open","other"].indexOf(e.kind)>=0)); });
         LOG=LOG.concat(good); logSave(); drawLog();
         document.getElementById("lgMsg").textContent=good.length+"件 読み込んだ。";
       }).catch(function(){ document.getElementById("lgMsg").textContent="読み込めないファイル。"; });
