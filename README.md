@@ -88,3 +88,13 @@ CI は緑のまま。設定を入れれば次の push からそのまま公開�
 
 合格可能性のパーセンテージだけは公表値がなく、A=80 / B=65 / C=50 / D=35% を
 基準点に当てはめた推定値。順位は実測なのでこちらのほうが信用できる。
+
+## リリース
+
+`v` で始まるタグを push すると `.github/workflows/release.yml` が GitHub Release を作り、
+そのコミットの `index.html` を `kyodai-simulator-<タグ>.html` として添付する。
+リリースノートは `.github/release-notes/<タグ>.md` に置く（なければ自動生成）。
+
+```sh
+git tag -a v1.0.0 -m "v1.0.0" && git push origin v1.0.0
+```
