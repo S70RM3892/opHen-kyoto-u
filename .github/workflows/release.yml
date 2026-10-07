@@ -1,12 +1,18 @@
 name: Release
 
-# v で始まるタグを push すると、そのコミットの index.html を添付した
-# GitHub Release を作る。リリースノートは .github/release-notes/<タグ>.md が
-# あればそれを使い、なければ前のタグからのコミットで自動生成する。
+# v で始まるタグを push するか、Actions 画面から手動実行（タグ名を入力）すると、
+# そのコミットの index.html を添付した GitHub Release を作る。手動実行では
+# 選んだブランチの先頭にタグを新しく打つ。リリースノートは
+# .github/release-notes/<タグ>.md があればそれを使い、なければ自動生成する。
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "作るタグ（例 v1.0.0）"
+        required: true
 
 permissions:
   contents: write
@@ -25,8 +31,10 @@ jobs:
       - name: Create the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+          EVENT: ${{ github.event_name }}
         run: |
+          case "$TAG" in v*) ;; *) echo "::error::タグは v で始める（$TAG）"; exit 1;; esac
           mkdir -p out
           cp index.html "out/kyodai-simulator-${TAG}.html"
           notes=".github/release-notes/${TAG}.md"
@@ -35,5 +43,10 @@ jobs:
           else
             set -- --generate-notes
           fi
+          if [ "$EVENT" = "push" ]; then
+            set -- "$@" --verify-tag
+          else
+            set -- "$@" --target "$GITHUB_SHA"
+          fi
           gh release create "$TAG" "out/kyodai-simulator-${TAG}.html" \
-            --title "$TAG" --verify-tag "$@"
+            --title "$TAG" "$@"
