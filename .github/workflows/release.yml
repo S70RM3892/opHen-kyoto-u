@@ -1,0 +1,39 @@
+name: Release
+
+# v で始まるタグを push すると、そのコミットの index.html を添付した
+# GitHub Release を作る。リリースノートは .github/release-notes/<タグ>.md が
+# あればそれを使い、なければ前のタグからのコミットで自動生成する。
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check the page and build the fragment
+        run: |
+          ./build.sh
+          diff <(sed -n '/ARTIFACT:START/,/ARTIFACT:END/p' index.html | sed '1d;$d') dist/artifact.html
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          mkdir -p out
+          cp index.html "out/kyodai-simulator-${TAG}.html"
+          notes=".github/release-notes/${TAG}.md"
+          if [ -f "$notes" ]; then
+            set -- --notes-file "$notes"
+          else
+            set -- --generate-notes
+          fi
+          gh release create "$TAG" "out/kyodai-simulator-${TAG}.html" \
+            --title "$TAG" --verify-tag "$@"
